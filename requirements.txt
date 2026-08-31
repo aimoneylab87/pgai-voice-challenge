@@ -1,0 +1,4 @@
+fastapi
+uvicorn
+azure-communication-callautomation
+python-dotenv
