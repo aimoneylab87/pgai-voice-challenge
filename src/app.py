@@ -2,6 +2,7 @@ import logging
 import os
 
 from fastapi import FastAPI, Request
+from azure.core.exceptions import ResourceNotFoundError
 
 from azure.communication.callautomation import (
     CallAutomationClient,
@@ -88,17 +89,49 @@ def generate_response(user_text: str) -> str:
     return content.strip()
 
 
-def play_text(call_connection, text: str):
-    source = TextSource(
-        text=text,
-        source_locale=SPEECH_LANGUAGE,
-        voice_name=VOICE_NAME,
+def start_patient_recognition(call_connection):
+    """Listen specifically for the patient after agent audio finishes."""
+    logger.info("=== STARTING PATIENT RECOGNITION ===")
+
+    call_connection.start_recognizing_media(
+        input_type=RecognizeInputType.SPEECH,
+        target_participant=PhoneNumberIdentifier(TARGET_PHONE_NUMBER),
+        speech_language=SPEECH_LANGUAGE,
+        initial_silence_timeout=10,
+        end_silence_timeout=2,
+        operation_callback_url=CALLBACK_URL,
     )
 
-    call_connection.play_media_to_all(
-        source,
-        interrupt_call_media_operation=False,
-    )
+
+def play_text(call_connection, text: str, context=""):
+    """Play TTS without crashing callbacks if the call has already ended."""
+    if not text:
+        return
+
+    logger.info("=== PLAYING AUDIO [%s] ===", context)
+
+    try:
+        source = TextSource(
+            text=text,
+            source_locale=SPEECH_LANGUAGE,
+            voice_name=VOICE_NAME,
+        )
+
+        call_connection.play_media_to_all(
+            source,
+            interrupt_call_media_operation=False,
+        )
+
+        logger.info("=== AUDIO PLAY REQUEST SENT ===")
+
+    except ResourceNotFoundError as exc:
+        logger.warning(
+            "Call is no longer available; skipping audio playback: %s",
+            exc,
+        )
+
+    except Exception:
+        logger.exception("Audio playback failed; continuing callback processing.")
 
 
 @app.get("/")
@@ -168,19 +201,37 @@ async def callbacks(request: Request):
                     greeting
                 )
 
-                # Listen for the patient's speech after the greeting.
-                connection.start_recognizing_media(
-                    input_type=RecognizeInputType.SPEECH,
-                    target_participant=PhoneNumberIdentifier(TARGET_PHONE_NUMBER),
-                    speech_language=SPEECH_LANGUAGE,
-                    initial_silence_timeout=10,
-                    end_silence_timeout=2,
-                    operation_callback_url=CALLBACK_URL,
-                )
 
             except Exception:
                 logger.exception(
                     "Error handling CallConnected"
+                )
+
+        # ---------------------------------------------------------
+        # PLAY COMPLETED
+        # ---------------------------------------------------------
+
+        elif event_type == "Microsoft.Communication.PlayCompleted":
+
+            logger.info("=== PLAY COMPLETED ===")
+
+            call_connection_id = data.get("callConnectionId")
+
+            try:
+                client = CallAutomationClient.from_connection_string(
+                    ACS_CONNECTION_STRING
+                )
+
+                connection = client.get_call_connection(
+                    call_connection_id
+                )
+
+                # Agent has finished speaking. Now listen for the patient.
+                start_patient_recognition(connection)
+
+            except Exception:
+                logger.exception(
+                    "Error handling PlayCompleted"
                 )
 
         # ---------------------------------------------------------
