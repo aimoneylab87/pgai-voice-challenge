@@ -1,4 +1,5 @@
 import logging
+import difflib
 import os
 
 from fastapi import FastAPI, Request
@@ -89,24 +90,196 @@ def generate_response(user_text: str) -> str:
     return content.strip()
 
 
-def start_patient_recognition(call_connection):
-    """Listen specifically for the patient after agent audio finishes."""
-    logger.info("=== STARTING PATIENT RECOGNITION ===")
+PATIENT_PARTICIPANT = None
+LAST_AGENT_TEXT = ""
+LAST_RECOGNIZED_TEXT = ""
 
-    call_connection.start_recognizing_media(
-        input_type=RecognizeInputType.SPEECH,
-        target_participant=PhoneNumberIdentifier(TARGET_PHONE_NUMBER),
-        speech_language=SPEECH_LANGUAGE,
-        initial_silence_timeout=10,
-        end_silence_timeout=2,
-        operation_callback_url=CALLBACK_URL,
+# Per-call turn-taking state.
+CALL_STATE = {}
+CALL_ACTIVE = True
+
+
+def get_call_state(call_connection_id: str):
+    """Return mutable state for one ACS call."""
+    return CALL_STATE.setdefault(
+        call_connection_id,
+        {
+            "active": True,
+            "recognition_in_progress": False,
+            "last_agent_text": "",
+            "last_recognized_text": "",
+        },
     )
 
 
-def play_text(call_connection, text: str, context=""):
+def is_echo_of_agent(text: str) -> bool:
+    """Detect when ACS recognition captured the bot's own TTS audio."""
+    global LAST_AGENT_TEXT
+
+    if not text or not LAST_AGENT_TEXT:
+        return False
+
+    def normalize(value):
+        return " ".join(
+            "".join(
+                ch.lower() if ch.isalnum() or ch.isspace() else " "
+                for ch in value
+            ).split()
+        )
+
+    recognized = normalize(text)
+    agent = normalize(LAST_AGENT_TEXT)
+
+    recognized_words = recognized.split()
+    agent_words = agent.split()
+
+    char_similarity = difflib.SequenceMatcher(
+        None,
+        recognized,
+        agent,
+    ).ratio()
+
+    word_similarity = difflib.SequenceMatcher(
+        None,
+        recognized_words,
+        agent_words,
+    ).ratio()
+
+    # A shared 3-word phrase is strong evidence that STT heard
+    # the agent's own TTS, even when the rest was paraphrased.
+    recognized_phrases = {
+        " ".join(recognized_words[i:i + 3])
+        for i in range(len(recognized_words) - 2)
+    }
+
+    agent_phrases = {
+        " ".join(agent_words[i:i + 3])
+        for i in range(len(agent_words) - 2)
+    }
+
+    shared_phrases = recognized_phrases & agent_phrases
+
+    logger.info(
+        "Echo similarity: %.3f | word similarity: %.3f | "
+        "shared 3-word phrases: %s | recognized=%r | last_agent=%r",
+        char_similarity,
+        word_similarity,
+        sorted(shared_phrases),
+        text,
+        LAST_AGENT_TEXT,
+    )
+
+    # Strong full-text match.
+    if char_similarity >= 0.65:
+        return True
+
+    # Strong word-sequence match.
+    if word_similarity >= 0.65:
+        return True
+
+    # Catch partial/paraphrased echoes such as:
+    # "Hi there. How can I help you today?"
+    # vs.
+    # "Hello, this is the medical scheduling assistant.
+    #  How can I help you today?"
+    if char_similarity >= 0.50 and shared_phrases:
+        return True
+
+    return False
+
+def is_duplicate_recognition(text: str) -> bool:
+    """Ignore repeated recognition results from the same turn."""
+    global LAST_RECOGNIZED_TEXT
+
+    if not text:
+        return True
+
+    normalized = " ".join(text.lower().split())
+
+    if not LAST_RECOGNIZED_TEXT:
+        LAST_RECOGNIZED_TEXT = normalized
+        return False
+
+    similarity = difflib.SequenceMatcher(
+        None,
+        normalized,
+        LAST_RECOGNIZED_TEXT,
+    ).ratio()
+
+    logger.info(
+        "Recognition duplicate similarity: %.3f",
+        similarity,
+    )
+
+    if similarity >= 0.90:
+        logger.warning(
+            "=== DUPLICATE RECOGNITION: IGNORING ==="
+        )
+        return True
+
+    LAST_RECOGNIZED_TEXT = normalized
+    return False
+
+
+def start_patient_recognition(call_connection, call_connection_id=None):
+    """Listen specifically for the patient after agent audio finishes."""
+    logger.info("=== STARTING PATIENT RECOGNITION ===")
+
+    global PATIENT_PARTICIPANT
+
+    if PATIENT_PARTICIPANT is None:
+        logger.warning("Patient participant is not available yet.")
+        return
+
+    if call_connection_id:
+        state = get_call_state(call_connection_id)
+
+        if not state["active"]:
+            logger.info("Call is no longer active; skipping recognition.")
+            return
+
+        if state["recognition_in_progress"]:
+            logger.info("Recognition already in progress; skipping duplicate start.")
+            return
+
+        state["recognition_in_progress"] = True
+
+    logger.info(
+        "Recognition target: %s",
+        PATIENT_PARTICIPANT
+    )
+
+    try:
+        call_connection.start_recognizing_media(
+            input_type=RecognizeInputType.SPEECH,
+            target_participant=PATIENT_PARTICIPANT,
+            speech_language=SPEECH_LANGUAGE,
+            initial_silence_timeout=10,
+            end_silence_timeout=2,
+            operation_callback_url=CALLBACK_URL,
+        )
+
+        logger.info("=== PATIENT RECOGNITION REQUEST SENT ===")
+
+    except Exception:
+        if call_connection_id:
+            state["recognition_in_progress"] = False
+
+        logger.exception("Failed to start patient recognition.")
+
+
+def play_text(call_connection, text: str, context="", call_connection_id=None):
     """Play TTS without crashing callbacks if the call has already ended."""
+    global LAST_AGENT_TEXT
+
     if not text:
         return
+
+    LAST_AGENT_TEXT = text
+
+    if call_connection_id:
+        state = get_call_state(call_connection_id)
+        state["last_agent_text"] = text
 
     logger.info("=== PLAYING AUDIO [%s] ===", context)
 
@@ -179,6 +352,13 @@ async def callbacks(request: Request):
                 call_connection_id
             )
 
+            # Initialize isolated turn-taking state for this call.
+            state = get_call_state(call_connection_id)
+            state["active"] = True
+            state["recognition_in_progress"] = False
+            state["last_agent_text"] = ""
+            state["last_recognized_text"] = ""
+
             try:
                 client = CallAutomationClient.from_connection_string(
                     ACS_CONNECTION_STRING
@@ -198,7 +378,8 @@ async def callbacks(request: Request):
 
                 play_text(
                     connection,
-                    greeting
+                    greeting,
+                    call_connection_id=call_connection_id,
                 )
 
 
@@ -227,7 +408,21 @@ async def callbacks(request: Request):
                 )
 
                 # Agent has finished speaking. Now listen for the patient.
-                start_patient_recognition(connection)
+                state = get_call_state(call_connection_id)
+
+                if not state["active"]:
+                    logger.info(
+                        "Call is no longer active; skipping PlayCompleted recognition."
+                    )
+                    continue
+
+                # The previous recognition operation has completed.
+                state["recognition_in_progress"] = False
+
+                start_patient_recognition(
+                    connection,
+                    call_connection_id,
+                )
 
             except Exception:
                 logger.exception(
@@ -271,21 +466,35 @@ async def callbacks(request: Request):
                         phone
                     )
 
+                    global PATIENT_PARTICIPANT
+                    PATIENT_PARTICIPANT = PhoneNumberIdentifier(phone)
+
+                    logger.info(
+                        "Stored patient participant for recognition: %s",
+                        phone
+                    )
+
         # ---------------------------------------------------------
         # CALL DISCONNECTED
         # ---------------------------------------------------------
 
         elif event_type == "Microsoft.Communication.CallDisconnected":
 
-            result = data.get(
-                "resultInformation",
-                {}
-            )
+            call_connection_id = data.get("callConnectionId")
+
+            state = get_call_state(call_connection_id)
+            state["active"] = False
+            state["recognition_in_progress"] = False
 
             logger.info("=== CALL DISCONNECTED ===")
             logger.info(
                 "Call connection: %s",
-                data.get("callConnectionId")
+                call_connection_id
+            )
+
+            result = data.get(
+                "resultInformation",
+                {}
             )
 
             logger.info(
@@ -303,16 +512,41 @@ async def callbacks(request: Request):
             logger.info("Recognize data: %s", data)
 
             call_connection_id = data.get("callConnectionId")
+            state = get_call_state(call_connection_id)
 
-            # ACS places recognized speech in the speechResult object.
+            # This recognition operation has finished.
+            state["recognition_in_progress"] = False
+
+            # Never process speech from a call that has already ended.
+            if not state["active"]:
+                logger.info(
+                    "Call is no longer active; ignoring recognition."
+                )
+                continue
+
+            # ACS places recognized speech in speechResult.
             speech_result = data.get("speechResult", {})
             recognized_text = speech_result.get("speech", "")
 
             if not recognized_text:
                 logger.warning("No speech text recognized")
-                return {"received": True}
+                continue
 
-            logger.info("Patient/agent speech recognized: %s", recognized_text)
+            logger.info(
+                "Patient/agent speech recognized: %s",
+                recognized_text
+            )
+
+            # Ignore the bot hearing its own TTS.
+            if is_echo_of_agent(recognized_text):
+                logger.warning(
+                    "=== ECHO DETECTED: IGNORING BOT'S OWN AUDIO ==="
+                )
+                continue
+
+            # Ignore duplicate recognition callbacks.
+            if is_duplicate_recognition(recognized_text):
+                continue
 
             try:
                 client = CallAutomationClient.from_connection_string(
@@ -323,6 +557,14 @@ async def callbacks(request: Request):
                     call_connection_id
                 )
 
+                # The call may have ended between the callback and this
+                # operation, so verify state again before generating audio.
+                if not state["active"]:
+                    logger.info(
+                        "Call ended before response generation; skipping."
+                    )
+                    continue
+
                 response_text = generate_response(recognized_text)
 
                 logger.info(
@@ -332,17 +574,20 @@ async def callbacks(request: Request):
 
                 play_text(
                     connection,
-                    response_text
+                    response_text,
+                    call_connection_id=call_connection_id,
+                )
+
+            except ResourceNotFoundError as exc:
+                logger.info(
+                    "Call ended before response playback: %s",
+                    exc
                 )
 
             except Exception:
                 logger.exception(
                     "Error handling RecognizeCompleted"
                 )
-
-        # ---------------------------------------------------------
-        # RECOGNIZE FAILED
-        # ---------------------------------------------------------
 
         elif event_type == "Microsoft.Communication.RecognizeFailed":
 
