@@ -538,10 +538,39 @@ async def callbacks(request: Request):
             )
 
             # Ignore the bot hearing its own TTS.
+            # After an echo, immediately restart recognition so the
+            # caller can continue speaking.
             if is_echo_of_agent(recognized_text):
                 logger.warning(
                     "=== ECHO DETECTED: IGNORING BOT'S OWN AUDIO ==="
                 )
+
+                try:
+                    client = CallAutomationClient.from_connection_string(
+                        ACS_CONNECTION_STRING
+                    )
+
+                    connection = client.get_call_connection(
+                        call_connection_id
+                    )
+
+                    if state["active"]:
+                        start_patient_recognition(
+                            connection,
+                            call_connection_id
+                        )
+
+                except ResourceNotFoundError as exc:
+                    logger.info(
+                        "Call ended while restarting recognition after echo: %s",
+                        exc
+                    )
+
+                except Exception:
+                    logger.exception(
+                        "Failed to restart recognition after echo."
+                    )
+
                 continue
 
             # Ignore duplicate recognition callbacks.
