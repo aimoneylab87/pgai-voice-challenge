@@ -3,9 +3,9 @@
 ## Scenario 01 — Basic Greeting
 - Objective: Verify the bot answers an outbound call and provides its initial greeting.
 - Expected: Call connects and bot speaks the opening prompt.
-- Result: TBD
-- Evidence: TBD
-- Status: PENDING
+- Result: PASS — Call connected, greeting playback started and completed successfully, and patient recognition started afterward.
+- Evidence: Uvicorn logs from call connection `4d006980-4d51-408e-a8ea-3fc76113a8fd`; `CallConnected`, `PlayStarted`, `PlayCompleted`, recognition request, and `RecognizeCompleted` were observed. Echo detection also correctly ignored the bot's own greeting.
+- Status: PASS
 
 ## Scenario 02 — Patient Name Recognition
 - Objective: Verify the bot recognizes a spoken patient name.
