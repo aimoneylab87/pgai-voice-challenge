@@ -1,6 +1,10 @@
 import os
 import sys
 
+from dotenv import load_dotenv
+
+load_dotenv(".env", override=True)
+
 from azure.communication.callautomation import (
     CallAutomationClient,
     PhoneNumberIdentifier,
