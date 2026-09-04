@@ -113,7 +113,7 @@ def get_call_state(call_connection_id: str):
 
 
 def is_echo_of_agent(text: str) -> bool:
-    """Detect when ACS recognition captured the bot's own TTS audio."""
+    """Detect only very strong matches to the bot's immediately preceding TTS."""
     global LAST_AGENT_TEXT
 
     if not text or not LAST_AGENT_TEXT:
@@ -130,6 +130,9 @@ def is_echo_of_agent(text: str) -> bool:
     recognized = normalize(text)
     agent = normalize(LAST_AGENT_TEXT)
 
+    if not recognized or not agent:
+        return False
+
     recognized_words = recognized.split()
     agent_words = agent.split()
 
@@ -145,44 +148,23 @@ def is_echo_of_agent(text: str) -> bool:
         agent_words,
     ).ratio()
 
-    # A shared 3-word phrase is strong evidence that STT heard
-    # the agent's own TTS, even when the rest was paraphrased.
-    recognized_phrases = {
-        " ".join(recognized_words[i:i + 3])
-        for i in range(len(recognized_words) - 2)
-    }
-
-    agent_phrases = {
-        " ".join(agent_words[i:i + 3])
-        for i in range(len(agent_words) - 2)
-    }
-
-    shared_phrases = recognized_phrases & agent_phrases
-
     logger.info(
         "Echo similarity: %.3f | word similarity: %.3f | "
-        "shared 3-word phrases: %s | recognized=%r | last_agent=%r",
+        "recognized=%r | last_agent=%r",
         char_similarity,
         word_similarity,
-        sorted(shared_phrases),
         text,
         LAST_AGENT_TEXT,
     )
 
-    # Strong full-text match.
-    if char_similarity >= 0.65:
+    # Only reject a recognition result when it is an extremely
+    # strong match for the bot's immediately preceding TTS.
+    if char_similarity >= 0.85:
+        logger.info("Strong TTS echo detected by character similarity.")
         return True
 
-    # Strong word-sequence match.
-    if word_similarity >= 0.65:
-        return True
-
-    # Catch partial/paraphrased echoes such as:
-    # "Hi there. How can I help you today?"
-    # vs.
-    # "Hello, this is the medical scheduling assistant.
-    #  How can I help you today?"
-    if char_similarity >= 0.50 and shared_phrases:
+    if word_similarity >= 0.85:
+        logger.info("Strong TTS echo detected by word similarity.")
         return True
 
     return False
@@ -542,6 +524,24 @@ async def callbacks(request: Request):
                 logger.warning(
                     "=== ECHO DETECTED: IGNORING BOT'S OWN AUDIO ==="
                 )
+                logger.info(
+                    "=== RESTARTING PATIENT RECOGNITION AFTER ECHO ==="
+                )
+                try:
+                    client = CallAutomationClient.from_connection_string(
+                        ACS_CONNECTION_STRING
+                    )
+                    connection = client.get_call_connection(
+                        call_connection_id
+                    )
+                    start_patient_recognition(
+                        connection,
+                        call_connection_id=call_connection_id,
+                    )
+                except ResourceNotFoundError as exc:
+                    logger.info("Call ended while restarting recognition: %s", exc)
+                except Exception:
+                    logger.exception("Failed to restart recognition after echo")
                 continue
 
             # Ignore duplicate recognition callbacks.
