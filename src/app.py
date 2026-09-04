@@ -97,7 +97,6 @@ def generate_response(user_text: str) -> str:
 
 PATIENT_PARTICIPANT = None
 LAST_AGENT_TEXT = ""
-LAST_RECOGNIZED_TEXT = ""
 
 # Per-call turn-taking state.
 CALL_STATE = {}
@@ -219,28 +218,33 @@ def is_echo_of_agent(text: str, state: dict) -> bool:
 
     return False
 
-def is_duplicate_recognition(text: str) -> bool:
-    """Ignore repeated recognition results from the same turn."""
-    global LAST_RECOGNIZED_TEXT
+def is_duplicate_recognition(text: str, state: dict) -> bool:
+    """Ignore repeated recognition results within the current call turn."""
 
     if not text:
         return True
 
     normalized = " ".join(text.lower().split())
+    previous = " ".join(
+        (state.get("last_recognized_text", "") or "").lower().split()
+    )
 
-    if not LAST_RECOGNIZED_TEXT:
-        LAST_RECOGNIZED_TEXT = normalized
+    if not previous:
+        state["last_recognized_text"] = normalized
         return False
 
     similarity = difflib.SequenceMatcher(
         None,
         normalized,
-        LAST_RECOGNIZED_TEXT,
+        previous,
     ).ratio()
 
     logger.info(
-        "Recognition duplicate similarity: %.3f",
+        "Recognition duplicate similarity: %.3f | "
+        "current=%r | previous=%r",
         similarity,
+        text,
+        state.get("last_recognized_text", ""),
     )
 
     if similarity >= 0.90:
@@ -249,7 +253,7 @@ def is_duplicate_recognition(text: str) -> bool:
         )
         return True
 
-    LAST_RECOGNIZED_TEXT = normalized
+    state["last_recognized_text"] = normalized
     return False
 
 
@@ -757,7 +761,7 @@ async def callbacks(request: Request):
                 continue
 
             # Ignore duplicate recognition callbacks.
-            if is_duplicate_recognition(recognized_text):
+            if is_duplicate_recognition(recognized_text, state):
                 continue
 
             try:
