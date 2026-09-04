@@ -149,80 +149,71 @@ def get_call_state(call_connection_id: str):
     )
 
 
-def is_echo_of_agent(text: str) -> bool:
-    """Detect likely echoes of the bot's immediately preceding TTS."""
-    global LAST_AGENT_TEXT
+def is_echo_of_agent(text: str, state: dict) -> bool:
+    """
+    Detect only very strong matches to our own most recently played TTS.
 
-    if not text or not LAST_AGENT_TEXT:
+    The phone participant is the remote AI scheduling agent. Its speech
+    must NOT be rejected merely because it shares generic wording with
+    our TTS. Therefore paraphrases are accepted.
+    """
+
+    normalized = " ".join((text or "").lower().split())
+    last_agent = " ".join(
+        (state.get("last_agent_text", "") or "").lower().split()
+    )
+
+    if not normalized or not last_agent:
         return False
-
-    def normalize(value):
-        return " ".join(
-            "".join(
-                ch.lower() if ch.isalnum() or ch.isspace() else " "
-                for ch in value
-            ).split()
-        )
-
-    recognized = normalize(text)
-    agent = normalize(LAST_AGENT_TEXT)
-
-    if not recognized or not agent:
-        return False
-
-    recognized_words = recognized.split()
-    agent_words = agent.split()
 
     char_similarity = difflib.SequenceMatcher(
         None,
-        recognized,
-        agent,
+        normalized,
+        last_agent,
     ).ratio()
 
-    word_similarity = difflib.SequenceMatcher(
-        None,
-        recognized_words,
-        agent_words,
-    ).ratio()
+    recognized_words = normalized.split()
+    agent_words = last_agent.split()
 
-    recognized_set = set(recognized_words)
-    agent_set = set(agent_words)
+    if recognized_words and agent_words:
+        word_similarity = difflib.SequenceMatcher(
+            None,
+            recognized_words,
+            agent_words,
+        ).ratio()
 
-    overlap = (
-        len(recognized_set & agent_set) /
-        max(1, len(recognized_set))
-    )
+        word_overlap = (
+            len(set(recognized_words) & set(agent_words))
+            / max(1, len(set(agent_words)))
+        )
+    else:
+        word_similarity = 0.0
+        word_overlap = 0.0
 
     logger.info(
         "Echo similarity: %.3f | word similarity: %.3f | "
         "word overlap: %.3f | recognized=%r | last_agent=%r",
         char_similarity,
         word_similarity,
-        overlap,
+        word_overlap,
         text,
-        LAST_AGENT_TEXT,
+        state.get("last_agent_text", ""),
     )
 
-    # Exact/near-exact replay of the bot's TTS.
-    if char_similarity >= 0.85 or word_similarity >= 0.85:
-        logger.info("Strong TTS echo detected.")
-        return True
-
-    # Paraphrased echo: ACS may recognize the bot's speech
-    # imperfectly, so word similarity can be lower even when
-    # most of the recognized content came from the bot.
-    if char_similarity >= 0.30 and overlap >= 0.40:
-        logger.info(
-            "Likely paraphrased TTS echo detected "
-            "(character similarity + word overlap)."
+    # Only reject speech that is extremely close to the exact text
+    # our bot most recently played.
+    strong_echo = (
+        char_similarity >= 0.85
+        or (
+            char_similarity >= 0.75
+            and word_similarity >= 0.80
+            and word_overlap >= 0.80
         )
-        return True
+    )
 
-    # Short utterances containing several distinctive words
-    # from the immediately preceding bot response.
-    if len(recognized_words) <= 12 and word_similarity >= 0.35:
+    if strong_echo:
         logger.info(
-            "Likely short TTS echo detected by word similarity."
+            "Strong match to our own TTS detected; treating as echo."
         )
         return True
 
@@ -741,7 +732,7 @@ async def callbacks(request: Request):
                 continue
 
             # Ignore the bot hearing its own TTS.
-            if is_echo_of_agent(recognized_text):
+            if is_echo_of_agent(recognized_text, state):
                 logger.warning(
                     "=== ECHO DETECTED: IGNORING BOT'S OWN AUDIO ==="
                 )
