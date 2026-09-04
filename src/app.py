@@ -384,7 +384,7 @@ def start_call_recording(call_connection_id: str):
             recording_state_callback_url=CALLBACK_URL,
             recording_content_type=RecordingContent.AUDIO,
             recording_channel_type=RecordingChannel.UNMIXED,
-            recording_format_type=RecordingFormat.MP3,
+            recording_format_type=RecordingFormat.WAV,
         )
 
         state = get_recording_state(call_connection_id)
