@@ -11,10 +11,6 @@ from azure.communication.callautomation import (
     PhoneNumberIdentifier,
     RecognizeInputType,
     TextSource,
-    ServerCallLocator,
-    RecordingContent,
-    RecordingChannel,
-    RecordingFormat,
 )
 
 from openai import AzureOpenAI
@@ -101,31 +97,6 @@ LAST_RECOGNIZED_TEXT = ""
 
 # Per-call turn-taking state.
 CALL_STATE = {}
-
-# Evidence recording/transcript state.
-EVIDENCE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "evidence")
-RECORDING_STATE = {}
-
-def get_recording_state(call_connection_id: str):
-    return RECORDING_STATE.setdefault(
-        call_connection_id,
-        {
-            "recording_id": None,
-            "transcript": [],
-            "recording_started": False,
-        },
-    )
-
-def add_transcript(call_connection_id: str, speaker: str, text: str):
-    if not text:
-        return
-    state = get_recording_state(call_connection_id)
-    state["transcript"].append(f"[{speaker}] {text}")
-    logger.info(
-        "TRANSCRIPT [%s]: %s",
-        speaker,
-        text,
-    )
 
 # Short guard against ACS recognizing recently played agent TTS
 # as patient speech.
@@ -366,131 +337,6 @@ def play_text(call_connection, text: str, context="", call_connection_id=None):
         logger.exception("Audio playback failed; continuing callback processing.")
 
 
-
-def start_call_recording(call_connection_id: str):
-    """Start an MP3 recording for evidence collection."""
-    try:
-        client = CallAutomationClient.from_connection_string(
-            ACS_CONNECTION_STRING
-        )
-
-        locator = ServerCallLocator(
-            server_call_id=call_connection_id
-        )
-
-        properties = client.start_recording(
-            call_locator=locator,
-            recording_state_callback_url=CALLBACK_URL,
-            recording_content_type=RecordingContent.AUDIO,
-            recording_channel_type=RecordingChannel.UNMIXED,
-            recording_format_type=RecordingFormat.MP3,
-        )
-
-        state = get_recording_state(call_connection_id)
-        state["recording_id"] = properties.recording_id
-        state["recording_started"] = True
-
-        logger.info(
-            "=== RECORDING STARTED === recording_id=%s",
-            properties.recording_id,
-        )
-
-    except Exception:
-        logger.exception(
-            "Failed to start call recording."
-        )
-
-
-def stop_call_recording(call_connection_id: str):
-    """Stop the active recording."""
-    state = get_recording_state(call_connection_id)
-    recording_id = state.get("recording_id")
-
-    if not recording_id:
-        logger.warning(
-            "No recording ID available for call %s",
-            call_connection_id,
-        )
-        return
-
-    try:
-        client = CallAutomationClient.from_connection_string(
-            ACS_CONNECTION_STRING
-        )
-
-        client.stop_recording(recording_id)
-
-        logger.info(
-            "=== RECORDING STOP REQUESTED === recording_id=%s",
-            recording_id,
-        )
-
-    except Exception:
-        logger.exception(
-            "Failed to stop call recording."
-        )
-
-
-def save_transcript(call_connection_id: str):
-    """Persist the conversation transcript."""
-    state = get_recording_state(call_connection_id)
-    lines = state.get("transcript", [])
-
-    if not lines:
-        logger.warning(
-            "No transcript entries for call %s",
-            call_connection_id,
-        )
-        return
-
-    os.makedirs(EVIDENCE_DIR, exist_ok=True)
-
-    # Use a deterministic evidence folder based on call order.
-    existing = sorted(
-        name for name in os.listdir(EVIDENCE_DIR)
-        if name.startswith("call-") and os.path.isdir(
-            os.path.join(EVIDENCE_DIR, name)
-        )
-    )
-
-    call_folder = None
-
-    for name in existing:
-        transcript_path = os.path.join(
-            EVIDENCE_DIR,
-            name,
-            f"{name}-transcript.txt",
-        )
-        if not os.path.exists(transcript_path):
-            call_folder = os.path.join(EVIDENCE_DIR, name)
-            break
-
-    if call_folder is None:
-        call_folder = os.path.join(
-            EVIDENCE_DIR,
-            f"call-{len(existing) + 1:02d}",
-        )
-
-    os.makedirs(call_folder, exist_ok=True)
-
-    transcript_path = os.path.join(
-        call_folder,
-        f"{os.path.basename(call_folder)}-transcript.txt",
-    )
-
-    with open(transcript_path, "w", encoding="utf-8") as f:
-        f.write(
-            f"Call connection ID: {call_connection_id}\n"
-        )
-        f.write("=" * 70 + "\n\n")
-        f.write("\n\n".join(lines))
-        f.write("\n")
-
-    logger.info(
-        "=== TRANSCRIPT SAVED === %s",
-        transcript_path,
-    )
-
 @app.get("/")
 async def root():
     return {
@@ -542,10 +388,6 @@ async def callbacks(request: Request):
             state["recognition_in_progress"] = False
             state["last_agent_text"] = ""
             state["last_recognized_text"] = ""
-
-            # Start MP3 recording for challenge evidence.
-            get_recording_state(call_connection_id)
-            start_call_recording(call_connection_id)
 
             try:
                 client = CallAutomationClient.from_connection_string(
