@@ -777,6 +777,12 @@ async def callbacks(request: Request):
                     )
                     continue
 
+                if state.get("conversation_closed"):
+                    logger.info(
+                        "Conversation is closed; skipping PlayCompleted recognition."
+                    )
+                    continue
+
                 # The previous recognition operation has completed.
                 state["recognition_in_progress"] = False
 
