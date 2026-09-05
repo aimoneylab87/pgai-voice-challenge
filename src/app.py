@@ -154,6 +154,112 @@ def generate_response(user_text: str, state: dict) -> str:
     return content
 
 
+def deterministic_patient_response(agent_text: str, state: dict):
+    """Handle predictable scheduling turns without an LLM call."""
+    text = " ".join((agent_text or "").lower().split())
+
+    if not text:
+        return None
+
+    # Close naturally after the appointment has been confirmed.
+    if state.get("appointment_confirmed"):
+        if any(
+            phrase in text
+            for phrase in (
+                "anything else",
+                "is there anything else",
+                "can i help you with anything else",
+                "do you need anything else",
+                "any other questions",
+            )
+        ):
+            state["conversation_closed"] = True
+            return (
+                "No, thank you. That's all I needed today. "
+                "Thanks for your help."
+            )
+
+    # Expose an appointment-type mismatch instead of blindly accepting it.
+    if (
+        "acute care" in text
+        and (
+            "appointment" in text
+            or "scheduled" in text
+            or "schedule" in text
+        )
+    ):
+        return (
+            "I was looking for a new primary-care appointment for my cough. "
+            "Is the Tuesday appointment a new primary-care appointment?"
+        )
+
+    # These are deterministic patient choices.
+    if (
+        "keep" in text
+        and (
+            "reschedule" in text
+            or "cancel" in text
+            or "appointment" in text
+        )
+    ):
+        return "I'd like to keep the appointment, thank you."
+
+    # Detect explicit appointment confirmation.
+    if any(
+        phrase in text
+        for phrase in (
+            "appointment is confirmed",
+            "appointment has been confirmed",
+            "your appointment is confirmed",
+            "your appointment has been confirmed",
+            "appointment is booked",
+            "appointment has been booked",
+            "your appointment is booked",
+            "your appointment has been booked",
+        )
+    ):
+        state["appointment_confirmed"] = True
+        return "Thank you. That works for me."
+
+    # Common identity question.
+    if (
+        "what is your name" in text
+        or "may i have your name" in text
+        or "can i have your name" in text
+    ):
+        return "My name is Jordan Miller."
+
+    # Common reason-for-visit question.
+    if any(
+        phrase in text
+        for phrase in (
+            "why are you calling",
+            "reason for your visit",
+            "reason for the appointment",
+            "what brings you in",
+        )
+    ):
+        return (
+            "I've had a persistent cough for three days "
+            "and I'd like to be seen."
+        )
+
+    # Preferred appointment timing.
+    if any(
+        phrase in text
+        for phrase in (
+            "preferred time",
+            "preferred day",
+            "when would you like",
+            "when works",
+            "what time would you",
+        )
+    ):
+        return "A weekday afternoon would be best, but I'm flexible."
+
+    return None
+
+
 PATIENT_PARTICIPANT = None
 LAST_AGENT_TEXT = ""
 
@@ -203,6 +309,8 @@ def get_call_state(call_connection_id: str):
             "last_agent_text": "",
             "last_recognized_text": "",
             "tts_guard_until": 0.0,
+            "appointment_confirmed": False,
+            "conversation_closed": False,
         },
     )
 
@@ -851,7 +959,29 @@ async def callbacks(request: Request):
                     )
                     continue
 
-                response_text = generate_response(recognized_text, state)
+                deterministic_response = deterministic_patient_response(
+                    recognized_text,
+                    state,
+                )
+
+                if deterministic_response is not None:
+                    response_text = deterministic_response
+
+                    state.setdefault("conversation", []).append(
+                        {
+                            "role": "assistant",
+                            "content": response_text,
+                        }
+                    )
+
+                    logger.info(
+                        "=== DETERMINISTIC PATIENT RESPONSE ==="
+                    )
+                else:
+                    response_text = generate_response(
+                        recognized_text,
+                        state,
+                    )
 
                 logger.info(
                     "Generated patient response: %s",
