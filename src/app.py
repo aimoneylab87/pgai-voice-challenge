@@ -101,11 +101,20 @@ def get_openai_client():
     )
 
 
-def generate_response(user_text: str) -> str:
+def generate_response(user_text: str, state: dict) -> str:
     client = get_openai_client()
 
     if client is None:
         return "I'm sorry, the AI service is not configured."
+
+    conversation = state.setdefault("conversation", [])
+
+    conversation.append(
+        {
+            "role": "user",
+            "content": user_text,
+        }
+    )
 
     response = client.chat.completions.create(
         model=OPENAI_DEPLOYMENT,
@@ -114,10 +123,7 @@ def generate_response(user_text: str) -> str:
                 "role": "system",
                 "content": SYSTEM_PROMPT,
             },
-            {
-                "role": "user",
-                "content": user_text,
-            },
+            *conversation,
         ],
         max_completion_tokens=500,
     )
@@ -127,7 +133,16 @@ def generate_response(user_text: str) -> str:
     if not content:
         return "I'm sorry, I didn't catch that."
 
-    return content.strip()
+    content = content.strip()
+
+    conversation.append(
+        {
+            "role": "assistant",
+            "content": content,
+        }
+    )
+
+    return content
 
 
 PATIENT_PARTICIPANT = None
@@ -827,7 +842,7 @@ async def callbacks(request: Request):
                     )
                     continue
 
-                response_text = generate_response(recognized_text)
+                response_text = generate_response(recognized_text, state)
 
                 logger.info(
                     "Generated patient response: %s",
