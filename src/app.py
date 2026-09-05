@@ -368,15 +368,15 @@ def play_text(call_connection, text: str, context="", call_connection_id=None):
 
 
 
-def start_call_recording(call_connection_id: str):
-    """Start an MP3 recording for evidence collection."""
+def start_call_recording(call_connection_id: str, server_call_id: str):
+    """Start a WAV recording for evidence collection."""
     try:
         client = CallAutomationClient.from_connection_string(
             ACS_CONNECTION_STRING
         )
 
         locator = ServerCallLocator(
-            server_call_id=call_connection_id
+            server_call_id=server_call_id
         )
 
         properties = client.start_recording(
@@ -544,9 +544,20 @@ async def callbacks(request: Request):
             state["last_agent_text"] = ""
             state["last_recognized_text"] = ""
 
-            # Start MP3 recording for challenge evidence.
+            # Start WAV recording for challenge evidence.
+            server_call_id = data.get("serverCallId")
+
             get_recording_state(call_connection_id)
-            start_call_recording(call_connection_id)
+
+            if server_call_id:
+                start_call_recording(
+                    call_connection_id,
+                    server_call_id,
+                )
+            else:
+                logger.error(
+                    "Cannot start recording: serverCallId missing."
+                )
 
             try:
                 client = CallAutomationClient.from_connection_string(
