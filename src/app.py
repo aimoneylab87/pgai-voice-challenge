@@ -90,7 +90,7 @@ def generate_response(user_text: str) -> str:
                 "content": user_text,
             },
         ],
-        max_completion_tokens=250,
+        max_completion_tokens=500,
     )
 
     content = response.choices[0].message.content
