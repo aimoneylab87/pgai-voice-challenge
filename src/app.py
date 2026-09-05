@@ -98,6 +98,7 @@ def get_openai_client():
         api_key=OPENAI_API_KEY,
         api_version="2024-10-21",
         azure_endpoint=OPENAI_ENDPOINT,
+        max_retries=0,
     )
 
 
@@ -116,19 +117,27 @@ def generate_response(user_text: str, state: dict) -> str:
         }
     )
 
-    response = client.chat.completions.create(
-        model=OPENAI_DEPLOYMENT,
-        messages=[
-            {
-                "role": "system",
-                "content": SYSTEM_PROMPT,
-            },
-            *conversation,
-        ],
-        max_completion_tokens=500,
-    )
+    try:
+        response = client.chat.completions.create(
+            model=OPENAI_DEPLOYMENT,
+            messages=[
+                {
+                    "role": "system",
+                    "content": SYSTEM_PROMPT,
+                },
+                *conversation,
+            ],
+            max_completion_tokens=500,
+        )
 
-    content = response.choices[0].message.content
+        content = response.choices[0].message.content
+
+    except Exception as exc:
+        logger.warning(
+            "OpenAI request failed; using short voice fallback: %s",
+            exc,
+        )
+        return "I'm sorry, could you repeat that?"
 
     if not content:
         return "I'm sorry, I didn't catch that."
