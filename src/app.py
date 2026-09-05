@@ -948,6 +948,14 @@ async def callbacks(request: Request):
             if is_duplicate_recognition(recognized_text, state):
                 continue
 
+            # Record only validated patient speech. Echoes, TTS bleed-through,
+            # and duplicate callbacks must never contaminate the transcript.
+            add_transcript(
+                call_connection_id,
+                "Patient",
+                recognized_text,
+            )
+
             try:
                 client = CallAutomationClient.from_connection_string(
                     ACS_CONNECTION_STRING
