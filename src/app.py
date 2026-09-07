@@ -869,6 +869,10 @@ async def callbacks(request: Request):
                 result
             )
 
+            # Finalize challenge evidence for this call.
+            stop_call_recording(call_connection_id)
+            save_transcript(call_connection_id)
+
         # ---------------------------------------------------------
         # RECOGNIZE COMPLETED
         # ---------------------------------------------------------
