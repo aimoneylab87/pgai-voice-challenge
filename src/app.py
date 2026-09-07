@@ -127,7 +127,7 @@ def generate_response(user_text: str, state: dict) -> str:
                 },
                 *conversation,
             ],
-            max_completion_tokens=500,
+            max_completion_tokens=350,
         )
 
         content = response.choices[0].message.content
