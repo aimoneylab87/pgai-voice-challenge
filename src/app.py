@@ -1035,3 +1035,52 @@ async def callbacks(request: Request):
             )
 
     return {"received": True}
+
+@app.post("/api/recording-events")
+async def recording_events(request: Request):
+    """Receive Azure Event Grid recording-ready notifications."""
+    events = await request.json()
+
+    logger.info("=== RECORDING EVENT GRID RECEIVED ===")
+    logger.info("%s", events)
+
+    if isinstance(events, dict):
+        events = [events]
+
+    for event in events:
+        event_type = event.get("eventType") or event.get("type")
+
+        # Event Grid subscription validation handshake.
+        if event_type == "Microsoft.EventGrid.SubscriptionValidationEvent":
+            validation_code = (
+                event.get("data", {})
+                .get("validationCode")
+            )
+            return {
+                "validationResponse": validation_code
+            }
+
+        if event_type != "Microsoft.Communication.RecordingFileStatusUpdated":
+            continue
+
+        data = event.get("data", {})
+        storage_info = data.get("recordingStorageInfo", {})
+        chunks = storage_info.get("recordingChunks", [])
+
+        logger.info(
+            "Recording ready: duration_ms=%s chunks=%s",
+            data.get("recordingDurationMs"),
+            len(chunks),
+        )
+
+        for chunk in chunks:
+            logger.info(
+                "Recording content location: %s",
+                chunk.get("contentLocation"),
+            )
+            logger.info(
+                "Recording metadata location: %s",
+                chunk.get("metadataLocation"),
+            )
+
+    return {"received": True}
