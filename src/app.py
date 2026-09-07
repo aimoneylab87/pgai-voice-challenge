@@ -952,7 +952,7 @@ async def callbacks(request: Request):
             # and duplicate callbacks must never contaminate the transcript.
             add_transcript(
                 call_connection_id,
-                "Patient",
+                "Agent",
                 recognized_text,
             )
 
