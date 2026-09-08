@@ -1,0 +1,46 @@
+Call connection ID: 35006280-32b0-4bd6-988b-8c4a3b1ad2ab
+======================================================================
+
+[Agent] Hi, how can I assist you today?
+
+[Agent] I can help with that. Before we get started, would you like to create a demo patient profile? I just need your first and last name.
+
+[Agent] Your patient profile is set up and your date of birth is July 4th, 2000 for demo purposes. How can I help you today?
+
+[Agent] Since you mentioned a persistent cough for three days, would you like to book an acute visit for urgent concerns? Where a general office visit for routine care. Let me know which gets your needs best.
+
+[Agent] Do you have a specific provider you'd like to see, or are you open to any available provider?
+
+[Agent] You already have an acute visit scheduled for Tuesday, September 8th at 1:00 PM. Would you like to keep this appointment, reschedule it, or cancel it? Let me know how you'd like to proceed.
+
+[Agent] You're all set for your acute visit on Tuesday, September 8th at 1:00 PM. Do you need anything else? Just let me know.
+
+[Agent] Glad to hear it. If you have any other questions or need help before your appointment, just let me know.
+
+[Agent] No problem. Your appointment is set for Tuesday, September 8th at 1:00 PM. If you need anything else, just ask.
+
+[Agent] Great, you're all set. Let me know if you need anything else.
+
+[Agent] Perfect. If you need anything else just let me know.
+
+[Agent] At 1:00 PM. That's the soonest available weekday afternoon for this type of appointment. If you want to change it, I can help reschedule. Would you like to keep this appointment or look for a different time?
+
+[Agent] You're confirmed for Tuesday, September 8th at 1:00 PM. If you need anything else, just let me know.
+
+[Agent] No worries. Your appointment is set for Tuesday, September 8th. At 1:00 PM. Let me know if you need anything else.
+
+[Agent] Glad to hear it. If you need anything else just let me know.
+
+[Agent] Please bring a photo ID, your insurance card, and a list of any medications you're taking. Arrive a few minutes early to complete any paperwork. If you have recent medical records or test results, bring those as well. Let me know if you have any other questions.
+
+[Agent] Yes, your visit is in person at the main clinic. The address is 1234 recovery way. Suite 200. Austin When you arrive, check in at the front desk in the main lobby.
+
+[Agent] Yes, free patient parking is available in the surface lot in front of the building. See you Tuesday at 1:00 PM.
+
+[Agent] You're all set. Looking forward to seeing you then. If you need anything else just let me know.
+
+[Agent] Perfect. Do you have any other questions? Just let me know.
+
+[Agent] If you need to cancel or reschedule, just let us know as soon as possible. We appreciate advance notice so we could offer the slot to another patient. You can call or use this service to make changes.
+
+[Agent] Glad I could help. Have a great day and see you at your appointment.
