@@ -112,6 +112,7 @@ def get_call_state(call_connection_id: str):
             "recognition_in_progress": False,
             "last_agent_text": "",
             "last_recognized_text": "",
+            "empty_turns": 0,
         },
     )
 
@@ -510,12 +511,70 @@ async def callbacks(request: Request):
                 )
                 continue
 
+            # Get the ACS call connection before handling any
+            # recognition result, including empty/low-confidence results.
+            try:
+                client = CallAutomationClient.from_connection_string(
+                    ACS_CONNECTION_STRING
+                )
+                connection = client.get_call_connection(
+                    call_connection_id
+                )
+            except ResourceNotFoundError as exc:
+                logger.info(
+                    "Call ended before recognition handling: %s",
+                    exc,
+                )
+                continue
+            except Exception:
+                logger.exception(
+                    "Failed to get call connection for recognition handling"
+                )
+                continue
+
             # ACS places recognized speech in speechResult.
             speech_result = data.get("speechResult", {})
             recognized_text = speech_result.get("speech", "")
 
+            confidence = speech_result.get("confidence", 0)
+
+            logger.info(
+                "Recognition confidence: %.3f",
+                confidence,
+            )
+
             if not recognized_text:
                 logger.warning("No speech text recognized")
+
+                state["empty_turns"] += 1
+
+                if state["empty_turns"] >= 5:
+                    logger.warning(
+                        "Too many empty recognition turns; ending call."
+                    )
+                    try:
+                        client = CallAutomationClient.from_connection_string(
+                            ACS_CONNECTION_STRING
+                        )
+                        connection = client.get_call_connection(
+                            call_connection_id
+                        )
+                        connection.hang_up(is_for_everyone=True)
+                    except ResourceNotFoundError as exc:
+                        logger.info(
+                            "Call already ended while handling empty recognition: %s",
+                            exc,
+                        )
+                    except Exception:
+                        logger.exception(
+                            "Failed to hang up after repeated empty recognitions"
+                        )
+                    return
+
+                start_patient_recognition(
+                    connection,
+                    call_connection_id=call_connection_id,
+                )
                 continue
 
             logger.info(
@@ -523,33 +582,80 @@ async def callbacks(request: Request):
                 recognized_text
             )
 
-            # Ignore the bot hearing its own TTS.
-            if is_echo_of_agent(recognized_text):
+            # Reject weak/noisy recognition before sending it to the LLM.
+            if confidence < 0.90:
                 logger.warning(
-                    "=== ECHO DETECTED: IGNORING BOT'S OWN AUDIO ==="
+                    "Low-confidence recognition ignored: %r",
+                    recognized_text,
                 )
-                logger.info(
-                    "=== RESTARTING PATIENT RECOGNITION AFTER ECHO ==="
+
+                state["empty_turns"] += 1
+
+                if state["empty_turns"] >= 5:
+                    logger.warning(
+                        "Too many low-confidence recognitions; ending call."
+                    )
+                    try:
+                        client = CallAutomationClient.from_connection_string(
+                            ACS_CONNECTION_STRING
+                        )
+                        connection = client.get_call_connection(
+                            call_connection_id
+                        )
+                        connection.hang_up(is_for_everyone=True)
+                    except ResourceNotFoundError as exc:
+                        logger.info(
+                            "Call already ended while handling low-confidence recognition: %s",
+                            exc,
+                        )
+                    except Exception:
+                        logger.exception(
+                            "Failed to hang up after repeated low-confidence recognitions"
+                        )
+                    return
+
+                if state["empty_turns"] >= 3:
+                    try:
+                        client = CallAutomationClient.from_connection_string(
+                            ACS_CONNECTION_STRING
+                        )
+                        connection = client.get_call_connection(
+                            call_connection_id
+                        )
+
+                        play_text(
+                            connection,
+                            "I didn't hear a response. Are you still there?",
+                            context="low-confidence-recovery",
+                            call_connection_id=call_connection_id,
+                        )
+                    except ResourceNotFoundError as exc:
+                        logger.info(
+                            "Call ended during low-confidence recovery: %s",
+                            exc,
+                        )
+                    except Exception:
+                        logger.exception(
+                            "Failed low-confidence recovery playback"
+                        )
+                    return
+
+                start_patient_recognition(
+                    connection,
+                    call_connection_id=call_connection_id,
                 )
-                try:
-                    client = CallAutomationClient.from_connection_string(
-                        ACS_CONNECTION_STRING
-                    )
-                    connection = client.get_call_connection(
-                        call_connection_id
-                    )
-                    start_patient_recognition(
-                        connection,
-                        call_connection_id=call_connection_id,
-                    )
-                except ResourceNotFoundError as exc:
-                    logger.info("Call ended while restarting recognition: %s", exc)
-                except Exception:
-                    logger.exception("Failed to restart recognition after echo")
                 continue
+
+            # A valid recognition resets the ignored-turn counter.
+            state["empty_turns"] = 0
+
 
             # Ignore duplicate recognition callbacks.
             if is_duplicate_recognition(recognized_text):
+                start_patient_recognition(
+                    connection,
+                    call_connection_id=call_connection_id,
+                )
                 continue
 
             try:
