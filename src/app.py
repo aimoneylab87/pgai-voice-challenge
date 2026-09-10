@@ -324,6 +324,52 @@ async def health():
     return {"status": "healthy"}
 
 
+@app.post("/api/recording-events")
+async def recording_events(request: Request):
+    """Receive Azure Communication Services recording lifecycle events."""
+
+    events = await request.json()
+
+    logger.info("=== RECORDING EVENT CALLBACK RECEIVED ===")
+    logger.info("%s", events)
+
+    if not isinstance(events, list):
+        events = [events]
+
+    for event in events:
+        event_type = event.get("type")
+        data = event.get("data", {})
+
+        logger.info("Recording event type: %s", event_type)
+
+        if event_type == "Microsoft.Communication.RecordingStateChanged":
+            state = data.get("recordingState")
+            recording_id = data.get("recordingId")
+            result_code = data.get("resultCode")
+
+            logger.info(
+                "=== RECORDING STATE CHANGED === "
+                "state=%s recording_id=%s result_code=%s",
+                state,
+                recording_id,
+                result_code,
+            )
+
+        elif event_type == "Microsoft.Communication.RecordingFileStatusUpdated":
+            logger.info(
+                "=== RECORDING FILE STATUS UPDATED === %s",
+                data,
+            )
+
+        else:
+            logger.info(
+                "Unhandled recording event: %s",
+                event_type,
+            )
+
+    return {"received": True}
+
+
 @app.post("/api/callbacks")
 async def callbacks(request: Request):
 
