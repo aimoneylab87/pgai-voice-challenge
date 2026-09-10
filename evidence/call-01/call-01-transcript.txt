@@ -1,46 +1,126 @@
-Call connection ID: 35006280-32b0-4bd6-988b-8c4a3b1ad2ab
-======================================================================
+PGAI AI Engineering Challenge - Formal Call #1 Transcript Evidence
 
-[Agent] Hi, how can I assist you today?
+Call connection ID:
+49006980-26fd-4424-907e-1afbd65519b1
 
-[Agent] I can help with that. Before we get started, would you like to create a demo patient profile? I just need your first and last name.
+NOTE:
+This is an evidence transcript of the ACS recognition stream.
+The recognition stream is contaminated by the bot's own TTS audio.
+It must NOT be interpreted as a verbatim transcript of two independent
+speakers.
 
-[Agent] Your patient profile is set up and your date of birth is July 4th, 2000 for demo purposes. How can I help you today?
+[ACS Recognition 1 | confidence 0.9180]
+I'm here to help with appointments. Questions about the clinic or anything
+else you need? What can I do for you today?
 
-[Agent] Since you mentioned a persistent cough for three days, would you like to book an acute visit for urgent concerns? Where a general office visit for routine care. Let me know which gets your needs best.
+[Analysis]
+This matches the automated bot's outbound greeting and demonstrates
+AI TTS audio being recognized as incoming speech.
 
-[Agent] Do you have a specific provider you'd like to see, or are you open to any available provider?
+[Generated Patient Response]
+Hi, I'm Jordan Miller (DOB 01/15/1990). I need to see a primary care
+provider — I've had mild lower back pain for several days. When's the
+next available appointment?
 
-[Agent] You already have an acute visit scheduled for Tuesday, September 8th at 1:00 PM. Would you like to keep this appointment, reschedule it, or cancel it? Let me know how you'd like to proceed.
+[Analysis]
+This was generated internally by the patient simulator. It is not treated
+as independently verified phone-side speech.
 
-[Agent] You're all set for your acute visit on Tuesday, September 8th at 1:00 PM. Do you need anything else? Just let me know.
+[ACS Recognition 2 | confidence 0.9015]
+I can help with that before I check the schedule. Would you like to create
+a demo patient profile? I just need your first and last name to get started.
 
-[Agent] Glad to hear it. If you have any other questions or need help before your appointment, just let me know.
+[Analysis]
+This matches the bot's outbound response and demonstrates continued
+voice-turn contamination.
 
-[Agent] No problem. Your appointment is set for Tuesday, September 8th at 1:00 PM. If you need anything else, just ask.
+[Generated Patient Response]
+Yes — Jordan Miller.
 
-[Agent] Great, you're all set. Let me know if you need anything else.
+[Analysis]
+This was generated internally by the patient simulator.
 
-[Agent] Perfect. If you need anything else just let me know.
+[ACS Recognition 3 | confidence 0.8903]
+Your patient profile has been created. For demo purposes, your date of birth
+is July 4th, 2000. How may I help you today?
 
-[Agent] At 1:00 PM. That's the soonest available weekday afternoon for this type of appointment. If you want to change it, I can help reschedule. Would you like to keep this appointment or look for a different time?
+[Analysis]
+This also corresponds to bot-generated outbound speech.
 
-[Agent] You're confirmed for Tuesday, September 8th at 1:00 PM. If you need anything else, just let me know.
+[Generated Patient Response]
+Hi, I’m Jordan Miller, DOB January 15, 1990. I’ve had mild lower back pain
+for several days and would like to see a primary care provider. Do you have
+any openings this week, preferably mornings?
 
-[Agent] No worries. Your appointment is set for Tuesday, September 8th. At 1:00 PM. Let me know if you need anything else.
+[Analysis]
+This was generated internally by the patient simulator.
 
-[Agent] Glad to hear it. If you need anything else just let me know.
+[ACS Recognition 4 | confidence 0.7337]
+Let me check for the next available morning appointments this week for a
+primary care visit. My mom. There are several morning openings this week.
+The soonest is Thursday, September 10th at 9:30 AM with Doctor Z Bigney
+Lukowski. Would you like to book that time?
 
-[Agent] Please bring a photo ID, your insurance card, and a list of any medications you're taking. Arrive a few minutes early to complete any paperwork. If you have recent medical records or test results, bring those as well. Let me know if you have any other questions.
+[Analysis]
+The phrase "My mom." appears as a recognition artifact.
+Provider-name recognition is unstable.
 
-[Agent] Yes, your visit is in person at the main clinic. The address is 1234 recovery way. Suite 200. Austin When you arrive, check in at the front desk in the main lobby.
+[ACS Recognition 5 | confidence 0.8694]
+We have several morning openings this week. The soonest is Thursday,
+September 10th at 9:30 AM with Doctor Zigbee Lukowski. Would you like
+to book that slot?
 
-[Agent] Yes, free patient parking is available in the surface lot in front of the building. See you Tuesday at 1:00 PM.
+[Analysis]
+Provider name differs from the previous recognition.
 
-[Agent] You're all set. Looking forward to seeing you then. If you need anything else just let me know.
+[Generated Patient Response]
+Yes, please book that slot.
 
-[Agent] Perfect. Do you have any other questions? Just let me know.
+[Analysis]
+This was generated internally by the patient simulator.
 
-[Agent] If you need to cancel or reschedule, just let us know as soon as possible. We appreciate advance notice so we could offer the slot to another patient. You can call or use this service to make changes.
+[ACS Recognition 6 | confidence 0.7883]
+Your appointment is set for Thursday, September 10th at 9:30 AM with
+Doctor Zbigniew Lukowski at Pivot Point Orthopedics. Please bring your
+photo ID insurance card. A list of your current medications. In any imaging
+disks you have. Would you like me to send you a text message with these
+details?
 
-[Agent] Glad I could help. Have a great day and see you at your appointment.
+[Analysis]
+This matches the bot's outbound appointment-confirmation speech.
+The provider name differs again and preparation instructions contain
+speech-segmentation artifacts.
+
+[Generated Patient Response]
+Yes, please. I’ll bring my photo ID, insurance card, list of meds, and any
+imaging disks. Thank you.
+
+[Analysis]
+This was generated internally by the patient simulator.
+
+[ACS Recognition 7 | confidence 0.8508]
+You're all set. If you have any other questions before your visit, just let
+me know. Take care.
+
+[Analysis]
+This matches the automated bot's closing and demonstrates that the
+recognition loop continued through the end of the call.
+
+[Generated Patient Response]
+Thanks. Do I need to bring anything to the appointment?
+
+[Analysis]
+This response was generated after ACS recognized the bot's closing.
+It further demonstrates that the recognition/response loop was operating
+on contaminated recognition input.
+
+Conclusion:
+The recognition stream provides strong evidence of an AI TTS echo /
+voice-turn isolation defect during Formal Call #1.
+
+The application successfully completed the intended scheduling workflow
+and generated patient-side responses, but the available ACS recognition
+events do not independently establish a clean two-speaker conversation.
+
+No patient dialogue is presented as independently verified when it is only
+an internally generated simulator response.

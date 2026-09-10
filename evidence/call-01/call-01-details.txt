@@ -1,0 +1,85 @@
+PGAI AI Engineering Challenge - Formal Call #1
+
+Scenario:
+Appointment scheduling / new patient appointment
+
+Call connection ID:
+49006980-26fd-4424-907e-1afbd65519b1
+
+Recording correlation ID:
+f829ed56-0d13-4518-a35d-f7ef79ce2ef3
+
+Recording:
+call-01.mp3
+
+Recording source:
+Azure Communication Services -> Azure Blob Storage
+
+Recording duration:
+175500 ms (~2 minutes 55.5 seconds)
+
+Conversation result:
+The automated patient bot successfully connected to the PGAI test line,
+progressed through an appointment-scheduling workflow, and ended normally.
+
+Observed workflow:
+- Call connected successfully.
+- Bot greeting played successfully.
+- ACS speech recognition activated successfully.
+- Application generated patient responses.
+- Bot proceeded through demo patient-profile creation.
+- Bot proceeded to appointment availability.
+- Bot selected/offered Thursday, September 10 at 9:30 AM.
+- Bot subsequently confirmed the appointment.
+- Bot provided appointment preparation instructions.
+- Bot offered to send appointment details by text.
+- Call ended normally.
+- ACS finalized the recording successfully.
+
+Primary quality finding:
+AI TTS audio was repeatedly recognized as incoming patient speech.
+
+Examples:
+- ACS recognized the bot's own greeting:
+  "I'm here to help with appointments. Questions about the clinic or anything else you need? What can I do for you today?"
+
+- ACS subsequently recognized another bot response:
+  "I can help with that before I check the schedule. Would you like to create a demo patient profile?"
+
+- ACS later recognized the bot's patient-profile response:
+  "Your patient profile has been created. For demo purposes, your date of birth is July 4th, 2000."
+
+- ACS later recognized the bot's appointment instructions:
+  "Your appointment is set for Thursday, September 10th at 9:30 AM with Doctor Zbigniew Lukowski..."
+
+- ACS finally recognized the bot's closing:
+  "You're all set. If you have any other questions before your visit, just let me know. Take care."
+
+This indicates insufficient separation between outbound bot audio and inbound
+speech recognition.
+
+Secondary quality findings:
+- The recognized appointment response contained the unexpected phrase
+  "My mom."
+- The provider name was inconsistently recognized as:
+  "Z Bigney Lukowski"
+  "Zigbee Lukowski"
+  "Zbigniew Lukowski"
+- The final preparation instructions contained awkward speech segmentation:
+  "Please bring your photo ID insurance card. A list of your current medications. In any imaging disks you have."
+
+Assessment:
+Functional call flow: PASS
+Call completion: PASS
+Recording storage: PASS
+Voice-turn isolation: FAIL
+Speech/voice quality: NEEDS IMPROVEMENT
+Two-sided conversation fidelity: FAIL
+
+Evidence note:
+The application logs distinguish generated patient responses from ACS speech
+recognition output. The generated patient responses show what the automated
+patient simulator intended to say, but they do not independently prove that
+the phone-side speech was transmitted and recognized. The ACS recognition
+stream is contaminated by the bot's own TTS audio. Therefore, patient dialogue
+is not fabricated in this evidence package.
