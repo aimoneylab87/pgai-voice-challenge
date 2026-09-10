@@ -1,18 +1,23 @@
 import logging
 import difflib
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(Path(__file__).resolve().parent.parent / ".env", override=True)
 
 from fastapi import FastAPI, Request
 from azure.core.exceptions import ResourceNotFoundError
 
 from azure.communication.callautomation import (
+    AzureBlobContainerRecordingStorage,
     CallAutomationClient,
     PhoneNumberIdentifier,
     RecognizeInputType,
+    RecordingChannel,
+    RecordingContent,
+    RecordingFormat,
     TextSource,
 )
 
@@ -124,6 +129,7 @@ def get_call_state(call_connection_id: str):
             "last_agent_text": "",
             "last_recognized_text": "",
             "empty_turns": 0,
+            "recording_id": None,
         },
     )
 
@@ -356,6 +362,7 @@ async def callbacks(request: Request):
             state["recognition_in_progress"] = False
             state["last_agent_text"] = ""
             state["last_recognized_text"] = ""
+            state["recording_id"] = None
 
             try:
                 client = CallAutomationClient.from_connection_string(
@@ -365,6 +372,32 @@ async def callbacks(request: Request):
                 connection = client.get_call_connection(
                     call_connection_id
                 )
+
+                # Start recording before the first greeting so the
+                # complete conversation is captured.
+                try:
+                    recording = client.start_recording(
+                        call_connection_id=call_connection_id,
+                        recording_state_callback_url=CALLBACK_URL,
+                        recording_content_type=RecordingContent.Audio,
+                        recording_channel_type=RecordingChannel.MIXED,
+                        recording_format_type=RecordingFormat.MP3,
+                        recording_storage=AzureBlobContainerRecordingStorage(
+                            "https://pgaivoicechallenge01.blob.core.windows.net/recordings"
+                        ),
+                    )
+
+                    state["recording_id"] = recording.recording_id
+
+                    logger.info(
+                        "=== RECORDING STARTED === recording_id=%s",
+                        recording.recording_id,
+                    )
+
+                except Exception:
+                    logger.exception(
+                        "Failed to start call recording; continuing call"
+                    )
 
                 # Initial greeting.
                 greeting = (
@@ -499,6 +532,33 @@ async def callbacks(request: Request):
                 "Result information: %s",
                 result
             )
+
+            # Stop the recording after the call ends.
+            recording_id = state.get("recording_id")
+
+            if recording_id:
+                try:
+                    client = CallAutomationClient.from_connection_string(
+                        ACS_CONNECTION_STRING
+                    )
+
+                    client.stop_recording(recording_id)
+
+                    logger.info(
+                        "=== RECORDING STOP REQUESTED === recording_id=%s",
+                        recording_id,
+                    )
+
+                except ResourceNotFoundError as exc:
+                    logger.info(
+                        "Recording/call already unavailable during stop: %s",
+                        exc,
+                    )
+
+                except Exception:
+                    logger.exception(
+                        "Failed to stop call recording"
+                    )
 
         # ---------------------------------------------------------
         # RECOGNIZE COMPLETED
