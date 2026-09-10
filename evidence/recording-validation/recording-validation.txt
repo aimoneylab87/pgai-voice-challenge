@@ -1,0 +1,27 @@
+Recording validation call
+
+Call connection ID:
+58006980-e01a-4e9b-987b-0d533f02eb15
+
+Recording duration:
+149620 ms (~2 minutes 29.6 seconds)
+
+Recording format:
+MP3
+
+Recording channel:
+MIXED
+
+Storage:
+Azure Blob Storage
+
+Recording lifecycle:
+RecordingStateChanged -> active
+RecordingFileStatusUpdated -> SessionEnded
+Session end reason -> CallEnded
+
+Recording callback:
+POST /api/recording-events -> HTTP 200
+
+Validation result:
+ACS successfully finalized and stored the conversation recording.
