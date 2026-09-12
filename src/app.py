@@ -780,6 +780,15 @@ async def callbacks(request: Request):
             state["empty_turns"] = 0
 
 
+
+            if is_echo_of_agent(recognized_text):
+                logger.warning("Ignoring agent echo: %s", recognized_text)
+                start_patient_recognition(
+                    connection,
+                    call_connection_id=call_connection_id,
+                )
+                continue
+
             # Ignore duplicate recognition callbacks.
             if is_duplicate_recognition(recognized_text):
                 start_patient_recognition(
