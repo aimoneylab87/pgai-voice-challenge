@@ -182,11 +182,11 @@ def is_echo_of_agent(text: str) -> bool:
 
     # Only reject a recognition result when it is an extremely
     # strong match for the bot's immediately preceding TTS.
-    if char_similarity >= 0.70:
+    if char_similarity >= 0.55:
         logger.info("Strong TTS echo detected by character similarity.")
         return True
 
-    if word_similarity >= 0.60:
+    if word_similarity >= 0.50:
         logger.info("Strong TTS echo detected by word similarity.")
         return True
 
