@@ -126,6 +126,7 @@ def get_call_state(call_connection_id: str):
         {
             "active": True,
             "recognition_in_progress": False,
+            "agent_speaking": False,
             "last_agent_text": "",
             "last_recognized_text": "",
             "empty_turns": 0,
@@ -284,6 +285,7 @@ def play_text(call_connection, text: str, context="", call_connection_id=None):
     if call_connection_id:
         state = get_call_state(call_connection_id)
         state["last_agent_text"] = text
+        state["agent_speaking"] = True
 
     logger.info("=== PLAYING AUDIO [%s] ===", context)
 
@@ -496,6 +498,9 @@ async def callbacks(request: Request):
                 # The previous recognition operation has completed.
                 state["recognition_in_progress"] = False
 
+                # Agent audio has finished; patient recognition can resume.
+                state["agent_speaking"] = False
+
                 start_patient_recognition(
                     connection,
                     call_connection_id,
@@ -625,6 +630,14 @@ async def callbacks(request: Request):
             if not state["active"]:
                 logger.info(
                     "Call is no longer active; ignoring recognition."
+                )
+                continue
+
+            # Ignore recognition captured while the agent is speaking.
+            # ACS recognition can hear the bot's own TTS on mixed call audio.
+            if state["agent_speaking"]:
+                logger.info(
+                    "Agent is speaking; ignoring recognition result."
                 )
                 continue
 
