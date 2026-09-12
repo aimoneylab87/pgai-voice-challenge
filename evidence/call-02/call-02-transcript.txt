@@ -1,0 +1,41 @@
+PGAI AI Engineering Challenge — Formal Call 2 Transcript
+==========================================================
+
+Call ID:
+ca96d67e-7a52-45ad-b63c-36ccc059830d
+
+Recording:
+call-02.mp3
+
+Target:
++18054398008
+
+Purpose:
+Formal test of appointment-confirmation flow and recognition behavior.
+
+Observed conversation:
+
+Patient/Agent recognition:
+"Just to confirm, you want to move your appointment to Wednesday, September 16th at 2:00 PM with Doctor Zee Big New Lukowski at the Nashville location. Is that correct?"
+
+Recognition confidence:
+0.8037233352661133
+
+Bot response:
+"Yes, that's correct. Please confirm the appointment."
+
+Second recognition:
+
+"Your appointment is now set for Wednesday, September 16th at 2:00 PM with Doctor Zegna Lukowski at the Nashville location. Please bring a photo ID and your insurance card. Is there anything else I can help you with? Your appointment is now set for Wednesday, September 16th at 2:00 PM with Doctor Zig Binyu Lukowski at the Nashville location. Would you like me to send you a text message with these details?"
+
+Recognition confidence:
+0.8048550486564636
+
+Bot response:
+"Yes, please send a text to 615-555-0123. Thank you."
+
+Important observation:
+The recognition system appears to recognize the AI agent's own spoken audio as patient speech. This occurred despite the recognition confidence being above the application's 0.75 confidence threshold.
+
+Call status:
+The application was manually interrupted while processing the call, so this call is retained as bug-discovery evidence rather than counted as a clean final challenge call.
