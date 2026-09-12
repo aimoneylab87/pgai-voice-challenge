@@ -1,0 +1,860 @@
+import logging
+import difflib
+import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).resolve().parent.parent / ".env", override=True)
+
+from fastapi import FastAPI, Request
+from azure.core.exceptions import ResourceNotFoundError
+
+from azure.communication.callautomation import (
+    AzureBlobContainerRecordingStorage,
+    CallAutomationClient,
+    PhoneNumberIdentifier,
+    RecognizeInputType,
+    RecordingChannel,
+    RecordingContent,
+    RecordingFormat,
+    TextSource,
+)
+
+from openai import AzureOpenAI
+
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("pgai-voice")
+
+app = FastAPI(title="PG-AI Voice Challenge")
+
+
+ACS_CONNECTION_STRING = os.getenv(
+    "AZURE_COMMUNICATION_CONNECTION_STRING"
+)
+
+OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
+OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
+OPENAI_DEPLOYMENT = os.getenv(
+    "AZURE_OPENAI_DEPLOYMENT",
+    "gpt-5-mini"
+)
+
+CALLBACK_URL = os.getenv("CALLBACK_URL")
+TARGET_PHONE_NUMBER = os.getenv("TARGET_PHONE_NUMBER")
+
+VOICE_NAME = "en-US-JennyNeural"
+SPEECH_LANGUAGE = "en-US"
+
+
+SYSTEM_PROMPT = """
+You are a synthetic patient testing a medical scheduling AI assistant.
+
+You are the patient, NOT the scheduling assistant.
+
+Answer the remote medical scheduling agent's questions directly and naturally.
+When asked to choose between options, choose one.
+When asked for your name, use the fictional name Jordan Miller.
+When asked for your date of birth, use January 15, 1990.
+When asked why you need an appointment, say you have had mild lower back
+pain for several days and would like to see a primary care provider.
+
+Keep your answers short and conversational.
+Do not repeat the agent's question back to it.
+Do not behave like an assistant.
+Do not provide medical diagnosis or treatment advice.
+
+If the agent gives you choices, select a reasonable option and continue.
+If something is unclear, ask a brief clarification question.
+"""
+
+
+def get_openai_client():
+    if not OPENAI_ENDPOINT or not OPENAI_API_KEY:
+        return None
+
+    return AzureOpenAI(
+        api_key=OPENAI_API_KEY,
+        api_version="2024-10-21",
+        azure_endpoint=OPENAI_ENDPOINT,
+    )
+
+
+def generate_response(user_text: str) -> str:
+    client = get_openai_client()
+
+    if client is None:
+        return "I'm sorry, the AI service is not configured."
+
+    response = client.chat.completions.create(
+        model=OPENAI_DEPLOYMENT,
+        messages=[
+            {
+                "role": "system",
+                "content": SYSTEM_PROMPT,
+            },
+            {
+                "role": "user",
+                "content": user_text,
+            },
+        ],
+        max_completion_tokens=1000,
+    )
+
+    content = response.choices[0].message.content
+
+    if not content:
+        return "I'm sorry, I didn't catch that."
+
+    return content.strip()
+
+
+PATIENT_PARTICIPANT = None
+LAST_AGENT_TEXT = ""
+LAST_RECOGNIZED_TEXT = ""
+
+# Per-call turn-taking state.
+CALL_STATE = {}
+CALL_ACTIVE = True
+
+
+def get_call_state(call_connection_id: str):
+    """Return mutable state for one ACS call."""
+    return CALL_STATE.setdefault(
+        call_connection_id,
+        {
+            "active": True,
+            "recognition_in_progress": False,
+            "agent_speaking": False,
+            "last_agent_text": "",
+            "last_recognized_text": "",
+            "empty_turns": 0,
+            "recording_id": None,
+        },
+    )
+
+
+def is_echo_of_agent(text: str) -> bool:
+    """Detect only very strong matches to the bot's immediately preceding TTS."""
+    global LAST_AGENT_TEXT
+
+    if not text or not LAST_AGENT_TEXT:
+        return False
+
+    def normalize(value):
+        return " ".join(
+            "".join(
+                ch.lower() if ch.isalnum() or ch.isspace() else " "
+                for ch in value
+            ).split()
+        )
+
+    recognized = normalize(text)
+    agent = normalize(LAST_AGENT_TEXT)
+
+    if not recognized or not agent:
+        return False
+
+    recognized_words = recognized.split()
+    agent_words = agent.split()
+
+    char_similarity = difflib.SequenceMatcher(
+        None,
+        recognized,
+        agent,
+    ).ratio()
+
+    word_similarity = difflib.SequenceMatcher(
+        None,
+        recognized_words,
+        agent_words,
+    ).ratio()
+
+    logger.info(
+        "Echo similarity: %.3f | word similarity: %.3f | "
+        "recognized=%r | last_agent=%r",
+        char_similarity,
+        word_similarity,
+        text,
+        LAST_AGENT_TEXT,
+    )
+
+    # Only reject a recognition result when it is an extremely
+    # strong match for the bot's immediately preceding TTS.
+    if char_similarity >= 0.70:
+        logger.info("Strong TTS echo detected by character similarity.")
+        return True
+
+    if word_similarity >= 0.60:
+        logger.info("Strong TTS echo detected by word similarity.")
+        return True
+
+    return False
+
+def is_duplicate_recognition(text: str) -> bool:
+    """Ignore repeated recognition results from the same turn."""
+    global LAST_RECOGNIZED_TEXT
+
+    if not text:
+        return True
+
+    normalized = " ".join(text.lower().split())
+
+    if not LAST_RECOGNIZED_TEXT:
+        LAST_RECOGNIZED_TEXT = normalized
+        return False
+
+    similarity = difflib.SequenceMatcher(
+        None,
+        normalized,
+        LAST_RECOGNIZED_TEXT,
+    ).ratio()
+
+    logger.info(
+        "Recognition duplicate similarity: %.3f",
+        similarity,
+    )
+def is_likely_agent_speech(text: str) -> bool:
+    text = text.lower()
+
+    agent_phrases = [
+        "would you like",
+        "your appointment",
+        "appointment has been moved",
+        "appointment is",
+        "is that correct",
+        "anything else",
+        "let me know",
+        "i've sent",
+        "can i help",
+    ]
+
+    return any(phrase in text for phrase in agent_phrases)
+    if similarity >= 0.90:
+        logger.warning(
+            "=== DUPLICATE RECOGNITION: IGNORING ==="
+        )
+        return True
+
+    LAST_RECOGNIZED_TEXT = normalized
+    return False
+
+    ]
+
+    return any(phrase in text for phrase in agent_phrases)
+def start_patient_recognition(call_connection, call_connection_id=None):
+    """Listen specifically for the patient after agent audio finishes."""
+    logger.info("=== STARTING PATIENT RECOGNITION ===")
+
+    global PATIENT_PARTICIPANT
+
+    if PATIENT_PARTICIPANT is None:
+        logger.warning("Patient participant is not available yet.")
+        return
+
+    if call_connection_id:
+        state = get_call_state(call_connection_id)
+
+        if not state["active"]:
+            logger.info("Call is no longer active; skipping recognition.")
+            return
+
+        if state["recognition_in_progress"]:
+            logger.info("Recognition already in progress; skipping duplicate start.")
+            return
+
+        state["recognition_in_progress"] = True
+
+    logger.info(
+        "Recognition target: %s",
+        PATIENT_PARTICIPANT
+    )
+
+    try:
+        call_connection.start_recognizing_media(
+            input_type=RecognizeInputType.SPEECH,
+            target_participant=PATIENT_PARTICIPANT,
+            speech_language=SPEECH_LANGUAGE,
+            initial_silence_timeout=10,
+            end_silence_timeout=2,
+            operation_callback_url=CALLBACK_URL,
+        )
+
+        logger.info("=== PATIENT RECOGNITION REQUEST SENT ===")
+
+    except Exception:
+        if call_connection_id:
+            state["recognition_in_progress"] = False
+
+        logger.exception("Failed to start patient recognition.")
+
+
+def play_text(call_connection, text: str, context="", call_connection_id=None):
+    """Play TTS without crashing callbacks if the call has already ended."""
+    global LAST_AGENT_TEXT
+
+    if not text:
+        return
+
+    LAST_AGENT_TEXT = text
+
+    if call_connection_id:
+        state = get_call_state(call_connection_id)
+        state["last_agent_text"] = text
+        state["agent_speaking"] = True
+
+    logger.info("=== PLAYING AUDIO [%s] ===", context)
+
+    try:
+        source = TextSource(
+            text=text,
+            source_locale=SPEECH_LANGUAGE,
+            voice_name=VOICE_NAME,
+        )
+
+        call_connection.play_media_to_all(
+            source,
+            interrupt_call_media_operation=False,
+        )
+
+        logger.info("=== AUDIO PLAY REQUEST SENT ===")
+
+    except ResourceNotFoundError as exc:
+        logger.warning(
+            "Call is no longer available; skipping audio playback: %s",
+            exc,
+        )
+
+    except Exception:
+        logger.exception("Audio playback failed; continuing callback processing.")
+
+
+@app.get("/")
+async def root():
+    return {
+        "status": "ok",
+        "service": "pgai-voice-challenge",
+    }
+
+
+@app.get("/health")
+async def health():
+    return {"status": "healthy"}
+
+
+@app.post("/api/recording-events")
+async def recording_events(request: Request):
+    """Receive Azure Communication Services recording lifecycle events."""
+
+    events = await request.json()
+
+    logger.info("=== RECORDING EVENT CALLBACK RECEIVED ===")
+    logger.info("%s", events)
+
+    if not isinstance(events, list):
+        events = [events]
+
+    for event in events:
+        event_type = event.get("type")
+        data = event.get("data", {})
+
+        logger.info("Recording event type: %s", event_type)
+
+        if event_type == "Microsoft.Communication.RecordingStateChanged":
+            state = data.get("recordingState")
+            recording_id = data.get("recordingId")
+            result_code = data.get("resultCode")
+
+            logger.info(
+                "=== RECORDING STATE CHANGED === "
+                "state=%s recording_id=%s result_code=%s",
+                state,
+                recording_id,
+                result_code,
+            )
+
+        elif event_type == "Microsoft.Communication.RecordingFileStatusUpdated":
+            logger.info(
+                "=== RECORDING FILE STATUS UPDATED === %s",
+                data,
+            )
+
+        else:
+            logger.info(
+                "Unhandled recording event: %s",
+                event_type,
+            )
+
+    return {"received": True}
+
+
+@app.post("/api/callbacks")
+async def callbacks(request: Request):
+
+    events = await request.json()
+
+    logger.info("=== ACS CALLBACK RECEIVED ===")
+    logger.info("%s", events)
+
+    if not isinstance(events, list):
+        return {"received": True}
+
+    for event in events:
+
+        event_type = event.get("type")
+        data = event.get("data", {})
+
+        logger.info("Event type: %s", event_type)
+
+        # ---------------------------------------------------------
+        # CALL CONNECTED
+        # ---------------------------------------------------------
+
+        if event_type == "Microsoft.Communication.CallConnected":
+
+            call_connection_id = data.get("callConnectionId")
+
+            logger.info("=== CALL CONNECTED ===")
+            logger.info(
+                "Call connection: %s",
+                call_connection_id
+            )
+
+            # Initialize isolated turn-taking state for this call.
+            state = get_call_state(call_connection_id)
+            state["active"] = True
+            state["recognition_in_progress"] = False
+            state["last_agent_text"] = ""
+            state["last_recognized_text"] = ""
+            state["recording_id"] = None
+
+            try:
+                client = CallAutomationClient.from_connection_string(
+                    ACS_CONNECTION_STRING
+                )
+
+                connection = client.get_call_connection(
+                    call_connection_id
+                )
+
+                # Start recording before the first greeting so the
+                # complete conversation is captured.
+                try:
+                    recording = client.start_recording(
+                        call_connection_id=call_connection_id,
+                        recording_state_callback_url=CALLBACK_URL,
+                        recording_content_type=RecordingContent.Audio,
+                        recording_channel_type=RecordingChannel.MIXED,
+                        recording_format_type=RecordingFormat.MP3,
+                        recording_storage=AzureBlobContainerRecordingStorage(
+                            "https://pgaivoicechallenge01.blob.core.windows.net/recordings"
+                        ),
+                    )
+
+                    state["recording_id"] = recording.recording_id
+
+                    logger.info(
+                        "=== RECORDING STARTED === recording_id=%s",
+                        recording.recording_id,
+                    )
+
+                except Exception:
+                    logger.exception(
+                        "Failed to start call recording; continuing call"
+                    )
+
+                # Initial greeting.
+                greeting = (
+                    "Hello, this is the medical scheduling assistant. "
+                    "How can I help you today?"
+                )
+
+                logger.info("Playing greeting")
+
+                play_text(
+                    connection,
+                    greeting,
+                    call_connection_id=call_connection_id,
+                )
+
+
+            except Exception:
+                logger.exception(
+                    "Error handling CallConnected"
+                )
+
+        # ---------------------------------------------------------
+        # PLAY COMPLETED
+        # ---------------------------------------------------------
+
+        elif event_type == "Microsoft.Communication.PlayCompleted":
+
+            logger.info("=== PLAY COMPLETED ===")
+
+            call_connection_id = data.get("callConnectionId")
+
+            try:
+                client = CallAutomationClient.from_connection_string(
+                    ACS_CONNECTION_STRING
+                )
+
+                connection = client.get_call_connection(
+                    call_connection_id
+                )
+
+                # Agent has finished speaking. Now listen for the patient.
+                state = get_call_state(call_connection_id)
+
+                if not state["active"]:
+                    logger.info(
+                        "Call is no longer active; skipping PlayCompleted recognition."
+                    )
+                    continue
+
+                # The previous recognition operation has completed.
+                state["recognition_in_progress"] = False
+
+                # Agent audio has finished; patient recognition can resume.
+                state["agent_speaking"] = False
+
+                start_patient_recognition(
+                    connection,
+                    call_connection_id,
+                )
+
+            except Exception:
+                logger.exception(
+                    "Error handling PlayCompleted"
+                )
+
+        # ---------------------------------------------------------
+        # PARTICIPANTS UPDATED
+        # ---------------------------------------------------------
+
+        elif event_type == "Microsoft.Communication.ParticipantsUpdated":
+
+            logger.info("=== PARTICIPANTS UPDATED ===")
+
+            participants = data.get(
+                "participants",
+                []
+            )
+
+            for participant in participants:
+
+                identifier = participant.get(
+                    "identifier",
+                    {}
+                )
+
+                logger.info(
+                    "Participant kind: %s",
+                    identifier.get("kind")
+                )
+
+                if identifier.get("kind") == "phoneNumber":
+
+                    phone = identifier.get(
+                        "phoneNumber",
+                        {}
+                    ).get("value")
+
+                    logger.info(
+                        "Phone participant: %s",
+                        phone
+                    )
+
+                    global PATIENT_PARTICIPANT
+                    PATIENT_PARTICIPANT = PhoneNumberIdentifier(phone)
+
+                    logger.info(
+                        "Stored patient participant for recognition: %s",
+                        phone
+                    )
+
+        # ---------------------------------------------------------
+        # CALL DISCONNECTED
+        # ---------------------------------------------------------
+
+        elif event_type == "Microsoft.Communication.CallDisconnected":
+
+            call_connection_id = data.get("callConnectionId")
+
+            state = get_call_state(call_connection_id)
+            state["active"] = False
+            state["recognition_in_progress"] = False
+
+            logger.info("=== CALL DISCONNECTED ===")
+            logger.info(
+                "Call connection: %s",
+                call_connection_id
+            )
+
+            result = data.get(
+                "resultInformation",
+                {}
+            )
+
+            logger.info(
+                "Result information: %s",
+                result
+            )
+
+            # Stop the recording after the call ends.
+            recording_id = state.get("recording_id")
+
+            if recording_id:
+                try:
+                    client = CallAutomationClient.from_connection_string(
+                        ACS_CONNECTION_STRING
+                    )
+
+                    client.stop_recording(recording_id)
+
+                    logger.info(
+                        "=== RECORDING STOP REQUESTED === recording_id=%s",
+                        recording_id,
+                    )
+
+                except ResourceNotFoundError as exc:
+                    logger.info(
+                        "Recording/call already unavailable during stop: %s",
+                        exc,
+                    )
+
+                except Exception:
+                    logger.exception(
+                        "Failed to stop call recording"
+                    )
+
+        # ---------------------------------------------------------
+        # RECOGNIZE COMPLETED
+        # ---------------------------------------------------------
+
+        elif event_type == "Microsoft.Communication.RecognizeCompleted":
+
+            logger.info("=== RECOGNIZE COMPLETED ===")
+            logger.info("Recognize data: %s", data)
+
+            call_connection_id = data.get("callConnectionId")
+            state = get_call_state(call_connection_id)
+
+            # This recognition operation has finished.
+            state["recognition_in_progress"] = False
+
+            # Never process speech from a call that has already ended.
+            if not state["active"]:
+                logger.info(
+                    "Call is no longer active; ignoring recognition."
+                )
+                continue
+
+            # Ignore recognition captured while the agent is speaking.
+            # ACS recognition can hear the bot's own TTS on mixed call audio.
+            if state["agent_speaking"]:
+                logger.info(
+                    "Agent is speaking; ignoring recognition result."
+                )
+                continue
+
+            # Get the ACS call connection before handling any
+            # recognition result, including empty/low-confidence results.
+            try:
+                client = CallAutomationClient.from_connection_string(
+                    ACS_CONNECTION_STRING
+                )
+                connection = client.get_call_connection(
+                    call_connection_id
+                )
+            except ResourceNotFoundError as exc:
+                logger.info(
+                    "Call ended before recognition handling: %s",
+                    exc,
+                )
+                continue
+            except Exception:
+                logger.exception(
+                    "Failed to get call connection for recognition handling"
+                )
+                continue
+
+            # ACS places recognized speech in speechResult.
+            speech_result = data.get("speechResult", {})
+            recognized_text = speech_result.get("speech", "")
+
+            confidence = speech_result.get("confidence", 0)
+
+            logger.info(
+                "Recognition confidence: %.3f",
+                confidence,
+            )
+
+            if not recognized_text:
+                logger.warning("No speech text recognized")
+
+                state["empty_turns"] += 1
+
+                if state["empty_turns"] >= 5:
+                    logger.warning(
+                        "Too many empty recognition turns; ending call."
+                    )
+                    try:
+                        client = CallAutomationClient.from_connection_string(
+                            ACS_CONNECTION_STRING
+                        )
+                        connection = client.get_call_connection(
+                            call_connection_id
+                        )
+                        connection.hang_up(is_for_everyone=True)
+                    except ResourceNotFoundError as exc:
+                        logger.info(
+                            "Call already ended while handling empty recognition: %s",
+                            exc,
+                        )
+                    except Exception:
+                        logger.exception(
+                            "Failed to hang up after repeated empty recognitions"
+                        )
+                    return
+
+                start_patient_recognition(
+                    connection,
+                    call_connection_id=call_connection_id,
+                )
+                continue
+
+            logger.info(
+                "Patient/agent speech recognized: %s",
+                recognized_text
+            )
+
+            # Reject weak/noisy recognition before sending it to the LLM.
+            if confidence < 0.75:
+                logger.warning(
+                    "Low-confidence recognition ignored: %r",
+                    recognized_text,
+                )
+
+                state["empty_turns"] += 1
+
+                if state["empty_turns"] >= 5:
+                    logger.warning(
+                        "Too many low-confidence recognitions; ending call."
+                    )
+                    try:
+                        client = CallAutomationClient.from_connection_string(
+                            ACS_CONNECTION_STRING
+                        )
+                        connection = client.get_call_connection(
+                            call_connection_id
+                        )
+                        connection.hang_up(is_for_everyone=True)
+                    except ResourceNotFoundError as exc:
+                        logger.info(
+                            "Call already ended while handling low-confidence recognition: %s",
+                            exc,
+                        )
+                    except Exception:
+                        logger.exception(
+                            "Failed to hang up after repeated low-confidence recognitions"
+                        )
+                    return
+
+                if state["empty_turns"] >= 3:
+                    try:
+                        client = CallAutomationClient.from_connection_string(
+                            ACS_CONNECTION_STRING
+                        )
+                        connection = client.get_call_connection(
+                            call_connection_id
+                        )
+
+                        play_text(
+                            connection,
+                            "I didn't hear a response. Are you still there?",
+                            context="low-confidence-recovery",
+                            call_connection_id=call_connection_id,
+                        )
+                    except ResourceNotFoundError as exc:
+                        logger.info(
+                            "Call ended during low-confidence recovery: %s",
+                            exc,
+                        )
+                    except Exception:
+                        logger.exception(
+                            "Failed low-confidence recovery playback"
+                        )
+                    return
+
+                start_patient_recognition(
+                    connection,
+                    call_connection_id=call_connection_id,
+                )
+                continue
+
+            # A valid recognition resets the ignored-turn counter.
+            state["empty_turns"] = 0
+
+
+            # Ignore duplicate recognition callbacks.
+            if is_duplicate_recognition(recognized_text):
+                start_patient_recognition(
+                    connection,
+                    call_connection_id=call_connection_id,
+                )
+                continue
+
+            try:
+                client = CallAutomationClient.from_connection_string(
+                    ACS_CONNECTION_STRING
+                )
+
+                connection = client.get_call_connection(
+                    call_connection_id
+                )
+
+                # The call may have ended between the callback and this
+                # operation, so verify state again before generating audio.
+                if not state["active"]:
+                    logger.info(
+                        "Call ended before response generation; skipping."
+                    )
+                    continue
+
+                response_text = generate_response(recognized_text)
+
+                logger.info(
+                    "Generated patient response: %s",
+                    response_text
+                )
+
+                play_text(
+                    connection,
+                    response_text,
+                    call_connection_id=call_connection_id,
+                )
+
+            except ResourceNotFoundError as exc:
+                logger.info(
+                    "Call ended before response playback: %s",
+                    exc
+                )
+
+            except Exception:
+                logger.exception(
+                    "Error handling RecognizeCompleted"
+                )
+
+        elif event_type == "Microsoft.Communication.RecognizeFailed":
+
+            logger.error(
+                "=== RECOGNIZE FAILED ==="
+            )
+
+            logger.error(
+                "Recognize data: %s",
+                data
+            )
+
+    return {"received": True}
