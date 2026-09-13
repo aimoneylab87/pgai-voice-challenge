@@ -80,6 +80,6 @@
 ## Scenario 12 — Error Handling
 - Objective: Verify application behavior when an ACS operation encounters an error.
 - Expected: Error is logged and handled without crashing the server.
-- Result: TBD
-- Evidence: TBD
-- Status: PENDING
+- Result: PASS — controlled local RecognizeFailed callback test reached the error handler, logged the failure data, and returned HTTP 200 without crashing the server.
+- Evidence: `evidence/scenarios/scenario-12-error-handling.txt`
+- Status: PASS

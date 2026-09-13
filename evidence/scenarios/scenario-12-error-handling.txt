@@ -1,0 +1,26 @@
+PGAI Voice Challenge — Scenario 12 Error Handling
+
+Test type:
+Controlled local callback error-path test.
+
+Event tested:
+Microsoft.Communication.RecognizeFailed
+
+Test data:
+callConnectionId: scenario12-test
+code: TestRecognitionFailure
+message: Controlled test of recognition error handling
+
+Observed application behavior:
+- ACS callback endpoint received the event.
+- Event type was identified as Microsoft.Communication.RecognizeFailed.
+- Application logged "=== RECOGNIZE FAILED ===".
+- Application logged the recognition failure data.
+- Callback returned HTTP 200 OK.
+- Response body was {"received":true}.
+
+Result:
+PASS — controlled error-path test.
+
+Note:
+This test verifies the application's RecognizeFailed callback handling. It does not claim that an actual ACS recognition failure was induced during a live paid call.
