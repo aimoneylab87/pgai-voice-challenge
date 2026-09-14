@@ -1,0 +1,63 @@
+CALL 04 TRANSCRIPT
+Date: 2026-09-13/14
+Call ID: 2b006080-fe0c-4636-a437-9c5221c2d765
+Target: +18054398008
+
+BOT: I'm here to help you with appointments. Questions about the clinic or anything else you need? What can I do for you today?
+
+PATIENT/ASR: I'm here to help you with appointments. Questions about the clinic or anything else you need? What can I do for you today?
+NOTE: Speech recognition initially captured the bot's own greeting. Echo similarity was 0.221 and word similarity was 0.216, so the echo guard did not suppress it.
+
+PATIENT/ASR: Hi — Jordan Miller, DOB January 15, 1990. I've had mild lower back pain for several days and would like to see a primary care provider. Do you have any openings this week, preferably mornings?
+
+BOT: Let me check for available morning appointments with the primary care provider this week. First, would you like to create a demo patient profile? I just need your first and last name to get started.
+
+PATIENT/ASR: Let me check for available morning appointments with the primary care provider this week. First, would you like to create a demo patient profile? I just need your first and last name to get started?
+NOTE: Bot speech was again recognized as patient speech. Echo/duplicate similarity remained below the configured suppression threshold.
+
+BOT: Yes — Jordan Miller.
+
+PATIENT/ASR: Your patient profile is set up and your date of birth is July 4th, 2000 for demo purposes. How can I help you today?
+
+BOT: Hi, I'm Jordan Miller. I've had mild lower back pain for several days and would like to see a primary care provider.
+
+PATIENT/ASR: It sounds like you want to see a provider for mild lower back pain. Would you like to book a general office visit for this concern?
+
+BOT: Yes, please. Mornings work best for me.
+
+PATIENT/ASR: You already have an office visit booked for Thursday, September 17th at 10 AM. Would you like to keep this appointment, reschedule it, or cancel it?
+
+BOT: Please reschedule. Mornings work best — can you move it to Monday, Sept 21 in the morning?
+
+PATIENT/ASR: I have a morning opening on Monday, September 21st at 9:00 AM with Doctor Z Bigni Lukowski in Nashville. Would you like to move your appointment to that time?
+
+BOT: Yes, please move it to Monday, September 21st at 9:00 AM with Dr. Z Bigni Lukowski.
+
+PATIENT/ASR: Can you tell me the reason you need to reschedule your appointment?
+
+BOT: I've had mild lower back pain for several days and would like to see a primary care provider, so I need to reschedule.
+
+PATIENT/ASR: You'd like to move your appointment to Monday, September 21st at 9:00 AM with Doctor Zbigniew Lukowski in Nashville, just to confirm, is that correct?
+
+BOT: Yes, that's correct. Thank you.
+
+PATIENT/ASR: Your appointment is now being moved to Monday, September 21st at 9:00 AM with Doctor Z Big New Lukowski in Nashville. Please remember to bring a photo ID and your insurance card to your visit. Let me know if you need anything else.
+
+BOT: That time works for me, thanks. Can you confirm the clinic address in Nashville?
+
+PATIENT/ASR: The Nashville clinic address is 220 Athens Way, Suite 200, Nashville. Would you like a text message with your appointment details?
+
+NOTE: This recognition had 0.7417 confidence and was correctly ignored by the low-confidence recognition filter.
+
+PATIENT/ASR: The address for your appointment in Nashville is 220 Athens Way. Suite 200, Nashville Would you like me to send your appointment details by text?
+
+BOT: Yes, please — my number is 615-555-0123.
+
+END OF CAPTURED CONVERSATION
+
+QUALITY NOTES:
+1. The voice pipeline successfully completed multiple speech-recognition and TTS cycles.
+2. Bot audio was repeatedly recognized as patient speech, showing an ASR/TTS echo issue.
+3. The confidence filter correctly rejected at least one low-confidence recognition.
+4. The bot successfully handled scheduling and rescheduling dialogue.
+5. The transcript contains several ASR substitutions of names, dates, and locations and should be treated as observed recognition output rather than ground-truth patient speech.

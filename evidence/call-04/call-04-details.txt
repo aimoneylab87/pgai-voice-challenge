@@ -1,0 +1,37 @@
+CALL 04 DETAILS
+
+Call connection ID:
+2b006080-fe0c-4636-a437-9c5221c2d765
+
+ACS recording call ID:
+c1395fdd-8583-4af3-8059-a3df02f3da28
+
+Scenario:
+Appointment scheduling and rescheduling for a primary-care visit.
+
+Recording:
+- MP3
+- Mixed audio
+- 16 kHz
+- Mono
+- Approximately 5 minutes 6 seconds
+- Azure Storage recording successfully finalized
+
+Evidence files:
+- call-04.mp3
+- call-04-acsmetadata.json
+- call-04-transcript.txt
+
+Observed behavior:
+- Outbound call connected successfully.
+- Recording started successfully.
+- Multiple Play and Recognize operations completed successfully.
+- GPT responses were generated and played back.
+- Low-confidence speech recognition was correctly rejected.
+- The call demonstrated repeated ASR/TTS echo behavior where bot speech was interpreted as patient speech.
+- Several proper nouns and appointment details were altered by ASR.
+
+Primary quality issue:
+ASR/TTS echo contamination. Bot-generated speech was repeatedly recognized as patient speech with moderate similarity scores and was sometimes processed as real patient input.
+
+Call 04 recording was independently verified in Azure Blob Storage and downloaded into this evidence directory.
