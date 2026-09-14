@@ -1,0 +1,41 @@
+PGAI AI Engineering Challenge - Call 03 Evidence
+
+Date: 2026-09-13
+Target phone: +18054398008
+
+Outbound call connection ID:
+21006480-e97f-402e-9ada-b229bac046b5
+
+ACS recording call ID:
+cfc21045-d041-4846-8085-0923d0caf5fb
+
+Recording:
+- Format: MP3
+- Size: approximately 2.5 MB
+- Duration: 430.3 seconds
+- Sample rate: 16000 Hz
+- Bit rate: 48000
+- Channels: 1
+- Channel type: mixed
+- Recording start: 2026-09-13T23:55:27.4847805Z
+
+Participant:
++18054398008
+
+Observed successful conversation flow:
+CallConnected
+RecordingStateChanged active
+ParticipantsUpdated
+Greeting / TTS playback
+PlayCompleted
+Speech recognition
+GPT response
+TTS playback
+Repeated recognition and response cycles
+Duplicate-recognition protection
+Echo protection
+Appointment scheduling/rescheduling conversation
+Invalid SMS number handling
+
+Cloud Shell note:
+The Cloud Shell session reset after the call. The Call 03 recording survived because Azure Communication Services stored the recording in Azure Storage.

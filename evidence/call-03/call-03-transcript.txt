@@ -1,0 +1,34 @@
+PGAI AI Engineering Challenge - Call 03 Transcript Evidence
+
+The following speech recognition results were captured in the Uvicorn callback logs during Call 03.
+
+1. "I can help with that. Would you like to create a demo patient profile first? I just need your first and last name to get started."
+
+2. "Your patient profile has been created. For devo purposes. Your date of birth is July 4th, 2000. How may I help you today?"
+
+3. "Let me check the schedule for the earliest available appointments this week."
+
+4. "You already have an office visit scheduled for Tuesday, September 15th at 9:00 AM. Would you like to keep this appointment? Reschedule it or cancel it."
+
+5. "We have openings on Thursday, September 17th in the morning. The first available is at 9:30 AM. Would you like to move your appointment to that time or would you prefer 10 AM or 10:38?"
+
+6. "Can you tell me the reason you need to reschedule your appointment?"
+
+7. "Thank you. Just to confirm, you'd like to move your appointment to Thursday, September 17th at 10 AM. With Doctor Z Big new Lukowski at Nashville. Is that correct?"
+
+8. "Your appointment is now set for. Thursday, September 17th. At 10:00 AM with Doctor Z Big New Lukowski in Nashville. Would you like me to send you a text message with these details?"
+
+9. "Your appointment has been moved to Thursday, September 17th at 10 AM. With Doctor Zebagnu. Wikowski in Nashville. Would you like a text message with your appointment details?"
+
+10. "Are you still there?"
+
+11. "Would you like me to send you a text message with your appointment details for September 17th at 10 AM?"
+
+12. "I have the number as 555123. 4567. Would you like me to send your appointment details to this number as well?"
+
+13. "It looks like the number 555. 1234567. Is invalid for text messages. Could you double check the number you'd like to use?"
+
+14. "I have your number as 555. 1234567. That number appears invalid for text messages. Could you confirm if there's another number you'd like to use?"
+
+Evidence note:
+The transcript reflects Azure Speech recognition output captured during the live Call 03 callback sequence. Some phrases contain speech-recognition artifacts/garbled proper names.
