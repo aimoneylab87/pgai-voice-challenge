@@ -1,0 +1,43 @@
+CALL 06 DETAILS
+
+Scenario:
+Primary-care appointment request and appointment rescheduling.
+
+Recording:
+- MP3
+- Mixed audio
+- 16 kHz
+- Mono
+- Approximately 4 minutes 34 seconds
+- Azure Blob Storage recording successfully finalized
+- ACS recording duration: 274020 ms
+- Session end reason: CallEnded
+- Recording chunk end reason: SessionEnded
+
+Evidence files:
+- call-06.mp3
+- call-06-acsmetadata.json
+- call-06-transcript.txt
+- call-06-raw-events.txt
+
+Observed behavior:
+- Outbound call connected successfully.
+- Recording started successfully.
+- Multiple Play and Recognize operations completed successfully.
+- Speech recognition returned multiple agent utterances with confidence values.
+- GPT-generated patient responses were processed through the voice pipeline.
+- The call exercised primary-care appointment selection and rescheduling behavior.
+- The call ended normally after the conversation ended.
+- Azure Communication Services finalized the recording successfully.
+
+Quality observations:
+- The recognized agent speech changed the synthetic patient's date of birth to July 4, 2000 and described it as being for dental purposes, despite the configured patient scenario using a different date of birth.
+- The agent initially presented an orthopedic/specialty clinic appointment even though the synthetic patient scenario requested a primary-care provider.
+- Provider and location names were inconsistently recognized during the conversation, including variations of the provider name and a location identified as Nashville.
+- These variations are observed speech-recognition output and should not be treated as ground-truth patient statements.
+- The call successfully exercised appointment scheduling and rescheduling despite the recognition inconsistencies.
+
+Recording verification:
+- Downloaded from the authenticated Azure Blob Storage recording.
+- Local file verified as MPEG ADTS, Layer III, 64 kbps, 16 kHz, monaural.
+- ACS metadata verified as valid JSON.
