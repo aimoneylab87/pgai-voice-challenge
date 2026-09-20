@@ -1,0 +1,28 @@
+Call 10 – Appointment Rescheduling / Conversation Edge Case
+
+Scenario:
+The bot entered an appointment-related conversation and attempted to handle an appointment rescheduling/profile flow. The call was also used to test conversation stability and recognition behavior during a longer interaction.
+
+Duration:
+Approximately 5 minutes 37 seconds.
+
+Outcome:
+The call connected successfully and completed normally. Azure Communication Services finalized the recording successfully. The recording and ACS metadata were recovered and validated.
+
+Observed quality issue:
+A significant echo/recognition contamination problem occurred during the call. The speech recognizer repeatedly interpreted the AI agent's own synthesized speech as if it were patient speech. This caused the bot to respond to statements that originated from the agent rather than from the patient.
+
+Examples observed in the application log included the agent's own appointment questions and confirmation statements being recognized as patient input. This produced unintended conversation progression, including appointment details that were not intentionally supplied by the patient.
+
+Impact:
+The echo contamination can cause the patient bot to lose control of the conversation, accept information that it did not actually say, and produce unrealistic or incorrect state transitions. This is a major voice-quality and turn-taking issue.
+
+Evidence:
+- call-10.mp3
+- call-10-acsmetadata.json
+- call-10-call-events.txt
+- call-10-raw-events.txt
+- preserved application log: ~/call-10-final-uvicorn.log
+
+Conclusion:
+Call 10 successfully produced a complete recording and event evidence while exposing a significant speech-recognition/echo problem. The issue is useful as development and debugging evidence and should be addressed in the compliant LiveKit pipeline implementation.
