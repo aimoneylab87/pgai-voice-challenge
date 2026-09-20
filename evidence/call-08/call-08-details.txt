@@ -1,0 +1,30 @@
+CALL 08 - Medication Refill / Scheduling Behavior Test
+
+Date: 2026-09-20
+Result: COMPLETED
+Recording: call-08.mp3
+ACS Metadata: call-08-acsmetadata.json
+Recording format: MP3, 64 kbps, 16 kHz, mono
+Recording duration: approximately 5 minutes 43 seconds
+
+Scenario:
+The patient attempted to test a medication-refill request. The conversation instead
+entered the agent's demo-patient/profile and appointment workflow.
+
+Observed behavior:
+1. The agent requested patient/profile information.
+2. The agent stated that the demo patient DOB was July 4, 2000.
+3. The agent asked about mild lower back pain.
+4. The agent asked about primary-care provider preferences.
+5. The agent referenced an existing appointment.
+6. The conversation moved into appointment confirmation/rescheduling behavior.
+7. The agent supplied clinic/location information.
+8. Agent audio was repeatedly recognized as if it were patient speech, demonstrating
+   the previously observed echo/recognition contamination problem.
+9. The call ended normally and the recording was finalized successfully.
+
+Evidence limitation:
+The current application event stream does not provide a reliable complete
+two-sided transcript. The recording is the authoritative audio evidence, while
+the recognition events provide supporting evidence of the conversation and the
+speech-recognition/echo issue.

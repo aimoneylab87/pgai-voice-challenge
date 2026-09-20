@@ -1,0 +1,23 @@
+8:INFO:pgai-voice:[{'id': '7ad281f2-f9a4-4685-8a46-7d363cbf30d6', 'source': 'calling/callConnections/0b005d80-2399-4c80-af60-58efe8993b87', 'type': 'Microsoft.Communication.CallDisconnected', 'data': {'resultInformation': {'code': 200, 'subCode': 5010, 'message': 'This conversation has ended as only one participant was remaining in the conversation. DiagCode: 0#5010.@'}, 'version': '2026-03-12', 'callConnectionId': '0b005d80-2399-4c80-af60-58efe8993b87', 'serverCallId': 'aHR0cHM6Ly9hcGkuZmxpZ2h0cHJveHkuc2t5cGUuY29tL2FwaS92Mi9jcC9jb252LXVzZWEyLTAzLXByb2QtYWtzLmNvbnYuc2t5cGUuY29tL2NvbnYvLUpqSkR1NkVRazZWb3hSV1VGQk5MUT9pPTEwLTEyOC0xMjQtMjAzJmU9NjM5MjUxODU2MzM1MTMzOTc4', 'correlationId': '8c47ee79-cb98-4e3b-a701-95c6863a4f41', 'publicEventType': 'Microsoft.Communication.CallDisconnected'}, 'time': '2026-09-20T16:55:04.7618843+00:00', 'specversion': '1.0', 'datacontenttype': 'application/json', 'subject': 'calling/callConnections/0b005d80-2399-4c80-af60-58efe8993b87'}]
+9:INFO:pgai-voice:Event type: Microsoft.Communication.CallDisconnected
+15:INFO:pgai-voice:[{'id': 'ae2a6ace-db93-4fb0-98ef-c644cbedf256', 'topic': '/subscriptions/e21e1eec-919c-48cc-9d0d-ff5ca9e9b9d0/resourcegroups/rg-pgai-voice-challenge/providers/microsoft.communication/communicationservices/acs-pgai-voice-challenge', 'subject': '/recording/call/8c47ee79-cb98-4e3b-a701-95c6863a4f41/serverCallId/0b005d80-2399-4c80-af60-58efe8993b87/recordingId/eyJQbGF0Zm9ybUVuZHBvaW50SWQiOiIwYjAwNWQ4MC0yMzk5LTRjODAtYWY2MC01OGVmZTg5OTNiODciLCJSZXNvdXJjZVNwZWNpZmljSWQiOiJiNWZlZDlhYy1lMjM3LTRlNTctYTNhNy1iYjJjYjNlNzdmZDIifQ', 'data': {'recordingStorageInfo': {'recordingChunks': [{'documentId': '0-wus-d12-3d3ac1bce305cdf6e7d83cb435e59eab', 'index': 0, 'endReason': 'SessionEnded', 'contentLocation': 'https://pgaivoicechallenge01.blob.core.windows.net/recordings/20260920/8c47ee79-cb98-4e3b-a701-95c6863a4f41/dmZDIifQ-4b3b0369-b6a9-4fe8-9b6e-d17ccc47cab1/0-audiomp3.mp3', 'metadataLocation': 'https://pgaivoicechallenge01.blob.core.windows.net/recordings/20260920/8c47ee79-cb98-4e3b-a701-95c6863a4f41/dmZDIifQ-4b3b0369-b6a9-4fe8-9b6e-d17ccc47cab1/0-acsmetadata.json'}]}, 'recordingStartTime': '2026-09-20T16:49:43.6176403Z', 'recordingDurationMs': 321260, 'recordingId': 'eyJQbGF0Zm9ybUVuZHBvaW50SWQiOiIwYjAwNWQ4MC0yMzk5LTRjODAtYWY2MC01OGVmZTg5OTNiODciLCJSZXNvdXJjZVNwZWNpZmljSWQiOiJiNWZlZDlhYy1lMjM3LTRlNTctYTNhNy1iYjJjYjNlNzdmZDIifQ', 'storageType': 'AzureBlob', 'sessionEndReason': 'CallEnded'}, 'eventType': 'Microsoft.Communication.RecordingFileStatusUpdated', 'dataVersion': '1.0', 'metadataVersion': '1', 'eventTime': '2026-09-20T16:55:16.8483467Z'}]
+21:INFO:pgai-voice:Event type: Microsoft.Communication.CallConnected
+204:INFO:pgai-voice:Event type: Microsoft.Communication.RecognizeCompleted
+283:INFO:pgai-voice:Event type: Microsoft.Communication.RecognizeCompleted
+363:INFO:pgai-voice:Event type: Microsoft.Communication.RecognizeCompleted
+443:INFO:pgai-voice:Event type: Microsoft.Communication.RecognizeCompleted
+523:INFO:pgai-voice:Event type: Microsoft.Communication.RecognizeCompleted
+603:INFO:pgai-voice:Event type: Microsoft.Communication.RecognizeCompleted
+683:INFO:pgai-voice:Event type: Microsoft.Communication.RecognizeCompleted
+763:INFO:pgai-voice:Event type: Microsoft.Communication.RecognizeCompleted
+843:INFO:pgai-voice:Event type: Microsoft.Communication.RecognizeCompleted
+923:INFO:pgai-voice:Event type: Microsoft.Communication.RecognizeCompleted
+1003:INFO:pgai-voice:Event type: Microsoft.Communication.RecognizeCompleted
+1083:INFO:pgai-voice:Event type: Microsoft.Communication.RecognizeCompleted
+1163:INFO:pgai-voice:Event type: Microsoft.Communication.RecognizeCompleted
+1243:INFO:pgai-voice:Event type: Microsoft.Communication.RecognizeCompleted
+1282:INFO:pgai-voice:Event type: Microsoft.Communication.RecognizeCompleted
+1321:INFO:pgai-voice:Event type: Microsoft.Communication.RecognizeCompleted
+1401:INFO:pgai-voice:Event type: Microsoft.Communication.RecognizeCompleted
+1481:INFO:pgai-voice:Event type: Microsoft.Communication.RecognizeCompleted
+1526:INFO:pgai-voice:Event type: Microsoft.Communication.CallDisconnected

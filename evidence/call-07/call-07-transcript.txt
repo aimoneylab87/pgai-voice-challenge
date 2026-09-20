@@ -1,0 +1,15 @@
+CALL 07 — TRANSCRIPT / RECOGNITION SUMMARY
+
+Important: This file is labeled as a recognition summary because the available application events primarily captured speech-recognition results. It should not be presented as a verbatim two-sided transcript.
+
+Observed recognition sequence:
+1. The agent introduced itself and asked what it could help with.
+2. The agent asked whether the patient wanted to create a demo patient profile.
+3. The agent stated that the demo profile had been created and assigned a July 4, 2000 date of birth.
+4. The agent asked whether the visit concerned mild lower back pain.
+5. The agent asked about the patients preferred primary care provider.
+6. The agent referenced an existing appointment at Pivot Point Orthopedics.
+7. The agent discussed keeping, rescheduling, or cancelling the appointment.
+8. The agent provided appointment/location information.
+9. Additional agent speech was recognized during the call, demonstrating continued echo contamination.
+10. The call eventually disconnected normally and the recording was finalized.

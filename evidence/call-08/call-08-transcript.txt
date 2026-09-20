@@ -1,0 +1,37 @@
+CALL 08 - RECOGNITION SUMMARY
+
+This is a recognition summary, not a complete two-sided transcript.
+The MP3 recording is the authoritative conversation evidence.
+
+The recognition events show the conversation entering the appointment/profile
+workflow rather than completing the intended medication-refill scenario.
+
+Recognized content included:
+
+- Agent greeting and appointment assistance.
+- Request to create a demo patient profile.
+- Demo patient DOB stated as July 4, 2000.
+- Questions about mild lower back pain.
+- Questions about a primary-care provider.
+- Reference to an existing appointment.
+- Appointment confirmation/rescheduling workflow.
+- Clinic/location information.
+- Repeated appointment confirmation and closing messages.
+
+Important observed issue:
+
+The speech-recognition system repeatedly recognized agent speech as though it
+were patient speech. This is consistent with the echo/feedback contamination
+identified in earlier calls.
+
+Recording evidence:
+
+The call recording was successfully finalized by ACS.
+Recording duration: approximately 5 minutes 43 seconds.
+Format: MP3, 64 kbps, 16 kHz, mono.
+
+Evidence limitation:
+
+The current event stream does not reliably distinguish patient speech from
+agent speech. Therefore this file intentionally does not claim to be a complete
+speaker-separated transcript.

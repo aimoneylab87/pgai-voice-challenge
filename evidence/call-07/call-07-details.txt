@@ -1,0 +1,20 @@
+CALL 07 — RECORDING AND CONVERSATION EVIDENCE
+
+Status: COMPLETED
+Recording duration: 321.26 seconds (5 minutes 21 seconds)
+Recording storage: Azure Blob Storage
+Recording format: MP3
+Recording validation: MPEG ADTS Layer III, 64 kbps, 16 kHz, monaural
+Call disconnect: Normal ACS disconnect (code 200 / subCode 5010)
+Recording finalization: Confirmed by Microsoft.Communication.RecordingFileStatusUpdated
+Recording session end reason: CallEnded
+
+Quality observations:
+- The call connected successfully and remained active for approximately 5 minutes.
+- The conversation followed an appointment-scheduling workflow.
+- The agent stated that the demo patient DOB was July 4, 2000.
+- The agent associated the patient with mild lower back pain.
+- The agent referenced an existing appointment at Pivot Point Orthopedics.
+- Multiple agent utterances were recognized by the bot speech-recognition pipeline.
+- This provides additional evidence of the previously identified audio-feedback / echo-contamination problem.
+- The call completed normally and produced a finalized recording.
