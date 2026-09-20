@@ -1,0 +1,16 @@
+Hi there. How can I assist you today?' | confidence=0.8646829128265381
+Would you like to create a demo patient profile so I can help schedule your appointment? I just need your first and last name.' | confidence=0.9039263725280762
+Your patient profile has been created and your date of birth is set as July 4th, 2000 for demo purposes. How may I help you today?' | confidence=0.9031975269317627
+Do you have a specific primary care provider you'd like to see, or are you open to the first available? | confidence=0.855700671672821
+There are several openings tomorrow, Monday, with Doctor Azegnew Lukowski and Doctor Kelly Noble. Do you have a preference between these two providers? Or should I offer the earliest available slot?' | confidence=0.734022855758667
+We have several openings tomorrow, Monday, with Doctor Zagnu Lukowski and Doctor Kelly Noble. Would you like to see either of them, or should I offer you the earliest available slot?' | confidence=0.7776280641555786
+The earliest opening with Doctor Kelly Noble is tomorrow, Monday at 9:00 AM. Would you like to book that time?' | confidence=0.7803083658218384
+Your appointment is booked for tomorrow, Monday at 9:00 AM with Doctor Kelly Noble at Pivot Point Orthopedics. Please bring your photo ID, insurance card, a list of your current medications, and any imaging discs if you have them. Would you like me to send you a text message with your appointment details?' | confidence=0.8291710019111633
+You're all set. If you need anything else just let me know. | confidence=0.9019830226898193
+Your appointment is tomorrow, Monday, September 21st. At 9:00 AM with Doctor Kelly Noble at Tithe Point Orthopedics. The clinic is located at 1234 Recovery Way, Suite 200, Austin.' | confidence=0.7505474090576172
+Pivot Point Orthopedics is a specialty clinic for joint, muscle and bone conditions, not a primary care office. Your appointment is with an orthopedic provider who can help with your lower back pain. If you need a primary care provider, you'll need to contact a primary care clinic directly. Would you like to keep your appointment here for your back pain? | confidence=0.8635703921318054
+Your appointment with Doctor Kelly Noble at Pivot Point Orthopedics is confirmed for tomorrow at 9:00 AM. Let me know if you need anything else.' | confidence=0.8174723386764526
+I set a reminder text to your phone with your upcoming appointments. The clinic addresses 1234 Recovery Way, Suite 200. Boston. Let me know if you need anything else.' | confidence=0.6580966711044312
+I've sent a reminder text to your phone. The clinic address is 1234 recovery way. Suite 200, Austin. Let me know if you need anything else. | confidence=0.7846469879150391
+Yes, please bring your insurance card and a government issue photo ID to your appointment. Also bring a list of your current medications and any imaging discs if you have them.' | confidence=0.8442593216896057
+You're welcome. Have a great day. | confidence=0.9562307596206665

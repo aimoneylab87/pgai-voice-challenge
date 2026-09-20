@@ -1,0 +1,27 @@
+{
+  "resourceId": "cafdf5f2-443f-4a26-a31f-925c1ca01152",
+  "callId": "4d57033d-7ec9-4602-9e08-cf682850b06f",
+  "chunkDocumentId": "0-cus-d9-4301e77be52045250385b105280b6082",
+  "chunkIndex": 0,
+  "chunkStartTime": "2026-09-20T16:10:35.0165330Z",
+  "chunkDuration": 357660.0,
+  "pauseResumeIntervals": [],
+  "recordingInfo": {
+    "contentType": "audio",
+    "channelType": "mixed",
+    "format": "mp3",
+    "audioConfiguration": {
+      "sampleRate": 16000,
+      "bitRate": 48000,
+      "channels": 1
+    }
+  },
+  "participants": [
+    {
+      "participantId": "8:acs:cafdf5f2-443f-4a26-a31f-925c1ca01152_e6cda379-6f04-441b-b0c9-e8e90d9a108d"
+    },
+    {
+      "participantId": "4:+18054398008"
+    }
+  ]
+}

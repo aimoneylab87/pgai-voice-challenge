@@ -1,0 +1,43 @@
+CALL 05 DETAILS
+
+Call connection ID:
+74006080-9e78-4378-9827-f1c6d6999da1
+
+Scenario:
+Primary-care appointment request and appointment scheduling.
+
+Recording:
+- MP3
+- Mixed audio
+- 16 kHz
+- Mono
+- Approximately 5 minutes 58 seconds
+- Azure Blob Storage recording successfully finalized
+
+Evidence files:
+- call-05.mp3
+- call-05-acsmetadata.json
+- call-05-transcript.txt
+- call-05-raw-events.txt
+
+Observed behavior:
+- Outbound call connected successfully.
+- Recording started successfully.
+- Multiple Play and Recognize operations completed successfully.
+- Speech recognition returned multiple agent utterances with confidence values ranging approximately from 0.66 to 0.96.
+- GPT-generated patient responses were processed through the voice pipeline.
+- The call ended normally after the conversation ended.
+- Azure Communication Services finalized the recording with sessionEndReason=CallEnded.
+- Recording duration reported by ACS was 357660 ms.
+
+Quality observations:
+- The agent initially offered and booked an appointment with an orthopedic/specialty clinic even though the synthetic patient requested a primary-care provider.
+- The agent later identified that the clinic was a specialty orthopedic clinic and asked whether the patient wanted to keep the appointment for the back-pain concern.
+- Several provider names, clinic names, and locations were inconsistently recognized in the captured speech, including variations of provider and clinic names and Austin/Boston location substitutions.
+- These variations are observed speech-recognition output and should not be treated as ground-truth patient statements.
+- The recording and callback pipeline completed successfully despite the observed recognition inconsistencies.
+
+Recording verification:
+- Downloaded from the authenticated Azure Blob Storage recording.
+- Local file verified as MPEG ADTS, Layer III, 64 kbps, 16 kHz, monaural.
+- File size: 2143440 bytes.
