@@ -1,0 +1,17 @@
+CALL 09 TRANSCRIPT / RECOGNITION SUMMARY
+
+Note: The current implementation does not produce a reliable speaker-separated transcript for this call. Recognition events show substantial echo contamination, where the patient's speech recognizer repeatedly captured the AI agent's own TTS output. This is therefore an evidence summary rather than a claim of a clean two-speaker transcript.
+
+Key recognized agent utterances included:
+
+- The agent asked whether the patient had a specific primary care provider or was open to any available provider.
+- The agent stated that it would check morning appointments with available primary care providers.
+- The agent repeatedly asked whether the patient was still there.
+- The agent offered a Monday, September 21 appointment with a provider and asked whether the patient wanted a different time or provider.
+- The interaction continued through repeated appointment-related prompts.
+
+Observed issue:
+The recognizer frequently treated the agent's spoken responses as patient speech, creating artificial turns and causing the conversation to continue without reliable patient input.
+
+Call result:
+The call eventually disconnected normally after the interaction loop.

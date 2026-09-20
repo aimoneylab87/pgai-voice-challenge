@@ -1,0 +1,22 @@
+CALL 09 — Medication Refill / Scheduling Edge Case
+
+Date: September 20, 2026
+Scenario: Medication refill request / patient interaction
+Call result: Completed normally
+Recording duration: Approximately 4 minutes 41 seconds
+Recording format: MP3, 64 kbps, 16 kHz, mono
+Recording storage: Azure Blob Storage
+
+Observed behavior:
+- The call completed and the recording was successfully finalized.
+- The bot experienced significant speech-recognition contamination from the AI agent's own audio.
+- Agent utterances were repeatedly interpreted as patient responses.
+- The conversation drifted into appointment scheduling even though the intended scenario was a medication refill.
+- Recognized agent speech included appointment questions, provider availability, appointment booking, and "Are you still there?" prompts.
+- This produced an extended interaction loop and reduced confidence that the patient persona was actually driving the conversation.
+
+Primary quality issue:
+Audio/recognition isolation is insufficient. The bot can recognize the AI agent's TTS output as if it were patient speech, causing false turns and conversation drift.
+
+Engineering significance:
+This call provides additional evidence for the turn-taking and echo-contamination bug and demonstrates that the current architecture needs stronger speaker isolation and pipeline-level conversation control.
