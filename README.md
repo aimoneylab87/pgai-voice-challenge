@@ -107,6 +107,12 @@ pgai-voice-challenge/
 - Project walkthrough video
 - AI debugging screen recording
 
+## Loom Videos
+
+- Project Walkthrough: https://www.loom.com/share/7b366809523f437a9df239485112af65
+- AI Debugging & Fix: https://www.loom.com/share/efc0b6afcc1e4df8a17fadcecbd32a2e
+
+
 ## Author
 
 PG-AI Voice Challenge project by Ajibola.
